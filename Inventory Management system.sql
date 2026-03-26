@@ -1,11 +1,11 @@
 CREATE TABLE "Products" (
-  "product_id" uuid PRIMARY KEY DEFAULT uuidv4(),
+  "product_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "product_name" varchar(255) NOT NULL,
-  "diameter" numeric(10, 2), 
-  "width" numeric(10, 3), 
-  "company_id" uuid NOT NULL,
-  "price" numeric(10, 2),
-  "category_id" int,
+  "diameter" numeric(10, 2) NOT NULL DEFAULT 0, 
+  "width" numeric(10, 3) NOT NULL DEFAULT 0, 
+  "company_id" uuid NOT NULL, 
+  "price" numeric(10, 2) DEFAULT 0,
+  "category_id" int NOT NULL, 
   CONSTRAINT "uq_product_identity" UNIQUE ("product_name", "diameter", "width", "company_id")
 );
 
