@@ -16,7 +16,7 @@ CREATE TABLE "Categories" (
 );
 
 CREATE TABLE "Companies" (
-  "company_id" uuid PRIMARY KEY DEFAULT uuidv4(),
+  "company_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "company_name" varchar(255)
 );
 
