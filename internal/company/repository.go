@@ -31,9 +31,10 @@ func (r *repository) Create(ctx context.Context, company *Company) error {
 		VALUES (@company_name)
 		RETURNING company_id`
 
-	err := r.db.QueryRow(ctx, query,
-		company.CompanyName,
-	).Scan(&company.CompanyID)
+	args := pgx.NamedArgs{
+		"company_name": company.CompanyName,
+	}
+	err := r.db.QueryRow(ctx, query, args).Scan(&company.CompanyID)
 
 	if err != nil {
 		return fmt.Errorf("failed to create company: %w", err)
