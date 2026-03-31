@@ -16,6 +16,16 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /inventories", h.Create)
+	mux.HandleFunc("GET /inventories", h.GetAll)
+	mux.HandleFunc("GET /inventories/{id}", h.GetByID)
+	mux.HandleFunc("PUT /inventories/{id}", h.Update)
+	mux.HandleFunc("DELETE /inventories/{id}", h.Delete)
+	mux.HandleFunc("GET /inventories/by-product/{productId}", h.GetByProduct)
+	mux.HandleFunc("GET /inventories/by-location/{locationId}", h.GetByLocation)
+}
+
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
