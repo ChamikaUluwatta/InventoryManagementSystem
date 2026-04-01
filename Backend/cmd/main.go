@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,9 +13,13 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/seed"
 )
 
 func main() {
+	seedEnabled := flag.Bool("seed", false, "Enable seed endpoint")
+	flag.Parse()
+
 	connString := os.Getenv("DATABASE_URL")
 	if connString == "" {
 		log.Fatal("DATABASE_URL environment variable is required")
@@ -57,6 +62,13 @@ func main() {
 	locationHandler.RegisterRoutes(mux)
 
 	inventoryHandler.RegisterRoutes(mux)
+
+	if *seedEnabled {
+		fmt.Println("Seed endpoint is registered.")
+		seedService := seed.NewService(companyRepo, categoryRepo, locationRepo, productRepo, inventoryRepo, db)
+		seedHandler := seed.NewHandler(seedService)
+		seedHandler.RegisterRoutes(mux)
+	}
 
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", mux))
 
