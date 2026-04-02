@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company"
@@ -20,9 +22,9 @@ func main() {
 	seedEnabled := flag.Bool("seed", false, "Enable seed endpoint")
 	flag.Parse()
 
-	connString := os.Getenv("DATABASE_URL")
+	connString := os.Getenv("DB")
 	if connString == "" {
-		log.Fatal("DATABASE_URL environment variable is required")
+		log.Fatal("DB environment variable is required")
 	}
 
 	db, err := database.NewPool(connString)
@@ -73,5 +75,45 @@ func main() {
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", mux))
 
 	fmt.Println("Server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", checkCors(mux)))
+}
+
+func isPreflight(r *http.Request) bool {
+	return r.Method == "OPTIONS" &&
+		r.Header.Get("Origin") != "" &&
+		r.Header.Get("Access-Control-Request-Method") != ""
+}
+
+var allowedList = []string{
+	"http://localhost:5173",
+	"http://127.0.0.1:5173",
+}
+
+var allowedMethods = []string{
+	"GET",
+	"DELETE",
+	"PUT",
+	"POST",
+	"OPTIONS",
+	"UPDATE",
+}
+
+func checkCors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isPreflight(r) {
+			origin := r.Header.Get("Origin")
+			method := r.Header.Get("Access-Control-Request-Method")
+			if slices.Contains(allowedList, origin) && slices.Contains(allowedMethods, method) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Methods", strings.Join(allowedMethods, ", "))
+			}
+		} else {
+			origin := r.Header.Get("Origin")
+			if slices.Contains(allowedList, origin) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+		}
+		w.Header().Add("Vary", "Origin")
+		next.ServeHTTP(w, r)
+	})
 }
