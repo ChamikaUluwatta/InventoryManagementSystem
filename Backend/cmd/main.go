@@ -16,23 +16,29 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/seed"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	_ = godotenv.Load()
+
 	seedEnabled := flag.Bool("seed", false, "Enable seed endpoint")
 	flag.Parse()
 
-	connString := os.Getenv("DB")
-	if connString == "" {
-		log.Fatal("DB environment variable is required")
-	}
+	db := setupDatabase()
 
-	db, err := database.NewPool(connString)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	defer db.Close()
+	mux := http.NewServeMux()
 
+	setupRoutes(mux, db, seedEnabled)
+
+	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", mux))
+
+	fmt.Printf("Server starting on :%s\n", os.Getenv("DB_PORT"))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("DB_PORT"), checkCors(mux)))
+}
+
+func setupRoutes(mux *http.ServeMux, db *pgxpool.Pool, seedEnabled *bool) {
 	productRepo := product.NewRepository(db)
 	productService := product.NewService(productRepo)
 	productHandler := product.NewHandler(productService)
@@ -53,7 +59,12 @@ func main() {
 	inventoryService := inventory.NewService(inventoryRepo)
 	inventoryHandler := inventory.NewHandler(inventoryService)
 
-	mux := http.NewServeMux()
+	if *seedEnabled {
+		fmt.Println("Seed endpoint is registered.")
+		seedService := seed.NewService(companyRepo, categoryRepo, locationRepo, productRepo, inventoryRepo, db)
+		seedHandler := seed.NewHandler(seedService)
+		seedHandler.RegisterRoutes(mux)
+	}
 
 	productHandler.RegisterRoutes(mux)
 
@@ -64,18 +75,21 @@ func main() {
 	locationHandler.RegisterRoutes(mux)
 
 	inventoryHandler.RegisterRoutes(mux)
+}
 
-	if *seedEnabled {
-		fmt.Println("Seed endpoint is registered.")
-		seedService := seed.NewService(companyRepo, categoryRepo, locationRepo, productRepo, inventoryRepo, db)
-		seedHandler := seed.NewHandler(seedService)
-		seedHandler.RegisterRoutes(mux)
+func setupDatabase() *pgxpool.Pool {
+	connString := os.Getenv("DB_HOST")
+	if connString == "" {
+		log.Fatal("DB environment variable is required")
 	}
 
-	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", mux))
+	db, err := database.NewPool(connString)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
 
-	fmt.Println("Server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", checkCors(mux)))
+	return db
 }
 
 func isPreflight(r *http.Request) bool {
