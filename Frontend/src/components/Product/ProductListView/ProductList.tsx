@@ -27,8 +27,39 @@ import {
 } from "@/components/ui/select";
 import type { Product } from "@/types/product";
 import { getAllProducts } from "@/services/productService";
+import { Pencil } from "lucide-react";
+import { Link } from "react-router-dom";
+import type { Category } from "@/types/category";
+import { getAllCategories } from "@/services/categoryService";
 
-const columns: ColumnDef<Product>[] = [
+export default function ProductList() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const [productData, categoriesData] = await Promise.all([
+          getAllProducts(),
+          getAllCategories(),
+        ]);
+        setProducts(productData);
+        setCategories(categoriesData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch products");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const columns: ColumnDef<Product>[] = [
   {
     accessorKey: "product_name",
     header: "Name",
@@ -50,30 +81,21 @@ const columns: ColumnDef<Product>[] = [
   {
     accessorKey: "category_id",
     header: "Category",
+     cell: ({ row }) => {
+    const catId = row.getValue("category_id") as number;
+    const category = categories.find(c => c.category_id === catId);
+    return category?.category_name || "-";
   },
+  },
+  {
+    accessorKey: "location_id",
+    header: "Location",
+  },
+  {
+    accessorKey: "edit",
+    header: "Edit",
+  }
 ];
-
-export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const data = await getAllProducts();
-        setProducts(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch products");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
 
   const table = useReactTable({
     data: products,
@@ -138,9 +160,19 @@ export default function ProductList() {
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                    cell.column.id === "edit" ? (
+                      <TableCell key={cell.id}>
+                        <Link to={`/products/${row.original.product_id}/edit`}>
+                        <Button variant="outline" size="sm">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        </Link>
+                      </TableCell>
+                    ): (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    )
                   ))}
                 </TableRow>
               ))
@@ -165,7 +197,7 @@ export default function ProductList() {
             value={table.getState().pagination.pageSize.toString()}
             onValueChange={(value) => table.setPageSize(Number(value))}
           >
-            <SelectTrigger className="w-[80px]">
+            <SelectTrigger className="w-20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

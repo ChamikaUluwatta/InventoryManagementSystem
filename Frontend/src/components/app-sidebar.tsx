@@ -26,7 +26,7 @@ const data = {
       title: "Products",
       url: "/products",
       items: [
-        { title: "All", url: "/products", disabled: false },
+        { title: "View All Products", url: "/products", disabled: false },
       ],
     },
     {
