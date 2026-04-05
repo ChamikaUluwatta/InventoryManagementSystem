@@ -21,7 +21,7 @@ const data = {
     {
       title: 'Products',
       url: '/products',
-      items: [{ title: 'View All Products', url: '/products', disabled: false }],
+      items: [{ title: 'View All Products', url: '/products', disabled: false }, { title: 'Add Product', url: '/products/add', disabled: false }],
     },
     {
       title: 'Inventory',

@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/Layout/AppLayout'
 import ProductList from '@/components/Product/ProductListView/ProductList'
 import { Button } from './components/ui/button'
 import EditProduct from './components/Product/EditProduct/EditProduct'
+import AddProduct from './components/Product/AddProduct/AddProduct'
 
 function EditProductWrapper() {
   const { productId } = useParams<{ productId: string }>()
@@ -49,6 +50,14 @@ function App() {
           element={
             <AppLayout>
               <EditProductWrapper />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/products/add"
+          element={
+            <AppLayout>
+              <AddProduct />
             </AppLayout>
           }
         />
