@@ -161,7 +161,7 @@ export default function EditProduct(props: Props) {
 
             <div className="space-y-2">
               <Label htmlFor="product_description">Description</Label>
-              <Textarea id="product_description" {...form.register('product_description')} />
+              <Textarea id="product_description" className='min-h-25 resize-y' {...form.register('product_description')} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

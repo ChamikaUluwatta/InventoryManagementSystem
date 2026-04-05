@@ -26,11 +26,26 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Product } from '@/types/product'
-import { getAllProducts } from '@/services/productService'
-import { Pencil } from 'lucide-react'
+import { deleteProduct, getAllProducts } from '@/services/productService'
+import { Pencil, Trash } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Category } from '@/types/category'
 import { getAllCategories } from '@/services/categoryService'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+
+import { CheckCircle2Icon } from 'lucide-react'
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([])
@@ -58,6 +73,15 @@ export default function ProductList() {
 
     fetchProducts()
   }, [])
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteProduct(id)
+      setProducts((prev) => prev.filter((p) => p.product_id !== id.toString()))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete product')
+    }
+  }
 
   const columns: ColumnDef<Product>[] = [
     {
@@ -161,13 +185,41 @@ export default function ProductList() {
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) =>
                     cell.column.id === 'edit' ? (
-                      <TableCell key={cell.id}>
-                        <Link to={`/products/${row.original.product_id}/edit`}>
-                          <Button variant="outline" size="sm">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </TableCell>
+                      <div>
+                        <TableCell key={cell.id}>
+                          <Link to={`/products/${row.original.product_id}/edit`}>
+                            <Button variant="outline" size="sm">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </TableCell>
+                        <TableCell key={cell.id}>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant={'outline'} size={'sm'}>
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete your
+                                  product and remove your product data from the inventory.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(row.original.product_id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </div>
                     ) : (
                       <TableCell key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

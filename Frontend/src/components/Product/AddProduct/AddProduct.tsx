@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -126,25 +126,28 @@ export default function AddProduct() {
 
   return (
     <div className="container mx-auto py-10">
-      <Card className="max-w-4xl mx-auto">
+      <Card>
         <CardHeader className="flex flex-row justify-center">
           <CardTitle>Add Product</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="product_name">Product Name</Label>
-              <Input id="product_name" {...form.register('product_name')} />
-              {form.formState.errors.product_name && (
-                <p className="text-sm text-red-500">{form.formState.errors.product_name.message}</p>
-              )}
-            </div>
+            <div className='flex flex-row gap-6'>
+              <div className="space-y-2">
+                <Label htmlFor="product_name">Product Name</Label>
+                <Input id="product_name" placeholder='Type your product name' {...form.register('product_name')} />
+                {form.formState.errors.product_name && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.product_name.message}
+                  </p>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="product_description">Description</Label>
-              <Textarea id="product_description" {...form.register('product_description')} />
+              <div className="space-y-2 grow-3">
+                <Label htmlFor="product_description">Description</Label>
+                <Textarea id="product_description" className='min-h-25 resize-y' placeholder='Type your product description' {...form.register('product_description')} />
+              </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="diameter">Diameter</Label>
@@ -260,15 +263,16 @@ export default function AddProduct() {
                 )}
               </div>
             </div>
-
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/products')}>
-                Cancel
-              </Button>
-            </div>
+            <CardFooter>
+              <div className="flex gap-4 pt-4">
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate('/products')}>
+                  Cancel
+                </Button>
+              </div>
+            </CardFooter>
           </form>
         </CardContent>
       </Card>
