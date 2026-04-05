@@ -28,6 +28,8 @@ func main() {
 
 	db := setupDatabase()
 
+	defer db.Close()
+
 	mux := http.NewServeMux()
 
 	setupRoutes(mux, db, seedEnabled)
@@ -87,8 +89,6 @@ func setupDatabase() *pgxpool.Pool {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
-
 	return db
 }
 
@@ -109,23 +109,27 @@ var allowedMethods = []string{
 	"PUT",
 	"POST",
 	"OPTIONS",
-	"UPDATE",
 }
 
 func checkCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
 		if isPreflight(r) {
-			origin := r.Header.Get("Origin")
 			method := r.Header.Get("Access-Control-Request-Method")
 			if slices.Contains(allowedList, origin) && slices.Contains(allowedMethods, method) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Methods", strings.Join(allowedMethods, ", "))
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				w.WriteHeader(http.StatusOK)
+				return
 			}
-		} else {
-			origin := r.Header.Get("Origin")
-			if slices.Contains(allowedList, origin) {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		if slices.Contains(allowedList, origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 		w.Header().Add("Vary", "Origin")
 		next.ServeHTTP(w, r)

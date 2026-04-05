@@ -29,16 +29,18 @@ func NewRepository(db *pgxpool.Pool) Repository {
 
 func (r *repository) Create(ctx context.Context, product *Product) error {
 	query := `
-		INSERT INTO "products" (product_name, diameter, width, company_id, price, category_id)
-		VALUES (@product_name, @diameter, @width, @company_id, @price, @category_id)
+		INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id)
+		VALUES (@product_name, @product_description, @diameter, @width, @company_id, @price, @category_id, @location_id)
 		RETURNING product_id`
 	args := pgx.NamedArgs{
-		"product_name": product.ProductName,
-		"diameter":     product.Diameter,
-		"width":        product.Width,
-		"company_id":   product.CompanyID,
-		"price":        product.Price,
-		"category_id":  product.CategoryID,
+		"product_name":        product.ProductName,
+		"product_description": product.ProductDescription,
+		"diameter":            product.Diameter,
+		"width":               product.Width,
+		"company_id":          product.CompanyID,
+		"price":               product.Price,
+		"category_id":         product.CategoryID,
+		"location_id":         product.LocationID,
 	}
 	err := r.db.QueryRow(ctx, query, args).Scan(&product.ProductID)
 
@@ -50,7 +52,7 @@ func (r *repository) Create(ctx context.Context, product *Product) error {
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error) {
 	query := `
-		SELECT product_id, product_name, diameter, width, company_id, price, category_id
+		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
 		FROM "products"
 		WHERE product_id = @product_id`
 
@@ -58,11 +60,13 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error
 	err := r.db.QueryRow(ctx, query, pgx.NamedArgs{"product_id": id}).Scan(
 		&product.ProductID,
 		&product.ProductName,
+		&product.ProductDescription,
 		&product.Diameter,
 		&product.Width,
 		&product.CompanyID,
 		&product.Price,
 		&product.CategoryID,
+		&product.LocationID,
 	)
 
 	if err != nil {
@@ -73,7 +77,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error
 
 func (r *repository) GetAll(ctx context.Context) ([]Product, error) {
 	query := `
-		SELECT product_id, product_name, diameter, width, company_id, price, category_id
+		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
 		FROM "products"
 		ORDER BY product_name`
 
@@ -90,17 +94,19 @@ func (r *repository) GetAll(ctx context.Context) ([]Product, error) {
 func (r *repository) Update(ctx context.Context, product *Product) error {
 	query := `
 		UPDATE "products"
-		SET product_name = @product_name, diameter = @diameter, width = @width, company_id = @company_id, price = @price, category_id = @category_id
+		SET product_name = @product_name, product_description = @product_description, diameter = @diameter, width = @width, company_id = @company_id, price = @price, category_id = @category_id, location_id = @location_id
 		WHERE product_id = @product_id`
 
 	args := pgx.NamedArgs{
-		"product_id":   product.ProductID,
-		"product_name": product.ProductName,
-		"diameter":     product.Diameter,
-		"width":        product.Width,
-		"company_id":   product.CompanyID,
-		"price":        product.Price,
-		"category_id":  product.CategoryID,
+		"product_id":          product.ProductID,
+		"product_name":        product.ProductName,
+		"product_description": product.ProductDescription,
+		"diameter":            product.Diameter,
+		"width":               product.Width,
+		"company_id":          product.CompanyID,
+		"price":               product.Price,
+		"category_id":         product.CategoryID,
+		"location_id":         product.LocationID,
 	}
 	_, err := r.db.Exec(ctx, query, args)
 
@@ -125,7 +131,7 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *repository) GetByCompany(ctx context.Context, companyID uuid.UUID) ([]Product, error) {
 	query := `
-		SELECT product_id, product_name, diameter, width, company_id, price, category_id
+		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
 		FROM "products"
 		WHERE company_id = @company_id
 		ORDER BY product_name`
@@ -144,7 +150,7 @@ func (r *repository) GetByCompany(ctx context.Context, companyID uuid.UUID) ([]P
 
 func (r *repository) GetByCategory(ctx context.Context, categoryID int) ([]Product, error) {
 	query := `
-		SELECT product_id, product_name, diameter, width, company_id, price, category_id
+		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
 		FROM "products"
 		WHERE category_id = @category_id
 		ORDER BY product_name`
