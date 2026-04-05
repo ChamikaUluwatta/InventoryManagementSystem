@@ -1,10 +1,6 @@
-import * as React from "react"
-import { Link, useLocation } from "react-router-dom"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import * as React from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Sidebar,
   SidebarContent,
@@ -17,24 +13,20 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { PackageIcon, PlusIcon, MinusIcon } from "lucide-react"
+} from '@/components/ui/sidebar'
+import { PackageIcon, PlusIcon, MinusIcon } from 'lucide-react'
 
 const data = {
   navMain: [
     {
-      title: "Products",
-      url: "/products",
-      items: [
-        { title: "View All Products", url: "/products", disabled: false },
-      ],
+      title: 'Products',
+      url: '/products',
+      items: [{ title: 'View All Products', url: '/products', disabled: false }],
     },
     {
-      title: "Inventory",
-      url: "/inventory",
-      items: [
-        { title: "Manage", url: "/inventory", disabled: false },
-      ],
+      title: 'Inventory',
+      url: '/inventory',
+      items: [{ title: 'Manage', url: '/inventory', disabled: false }],
     },
   ],
 }
@@ -67,14 +59,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarMenu>
             {data.navMain.map((item) => (
-              <Collapsible
-                key={item.title}
-                className="group/collapsible"
-              >
+              <Collapsible key={item.title} className="group/collapsible">
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton>
-                      {item.title}{" "}
+                      {item.title}{' '}
                       <PlusIcon className="ml-auto group-data-[state=open]/collapsible:hidden" />
                       <MinusIcon className="ml-auto group-data-[state=closed]/collapsible:hidden" />
                     </SidebarMenuButton>
@@ -85,10 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         {item.items.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             {subItem.disabled ? (
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={false}
-                              >
+                              <SidebarMenuSubButton asChild isActive={false}>
                                 <span
                                   aria-disabled="true"
                                   className="cursor-not-allowed opacity-50"
@@ -98,10 +84,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 </span>
                               </SidebarMenuSubButton>
                             ) : (
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={isActive(subItem.url)}
-                              >
+                              <SidebarMenuSubButton asChild isActive={isActive(subItem.url)}>
                                 <Link to={subItem.url}>{subItem.title}</Link>
                               </SidebarMenuSubButton>
                             )}

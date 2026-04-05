@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -6,8 +6,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table";
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
+} from '@tanstack/react-table'
+import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import {
   Table,
   TableBody,
@@ -15,30 +15,30 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import type { Product } from "@/types/product";
-import { getAllProducts } from "@/services/productService";
-import { Pencil } from "lucide-react";
-import { Link } from "react-router-dom";
-import type { Category } from "@/types/category";
-import { getAllCategories } from "@/services/categoryService";
+} from '@/components/ui/select'
+import type { Product } from '@/types/product'
+import { getAllProducts } from '@/services/productService'
+import { Pencil } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import type { Category } from '@/types/category'
+import { getAllCategories } from '@/services/categoryService'
 
 export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -46,56 +46,56 @@ export default function ProductList() {
         const [productData, categoriesData] = await Promise.all([
           getAllProducts(),
           getAllCategories(),
-        ]);
-        setProducts(productData);
-        setCategories(categoriesData);
+        ])
+        setProducts(productData)
+        setCategories(categoriesData)
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch products");
+        setError(err instanceof Error ? err.message : 'Failed to fetch products')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchProducts();
-  }, []);
+    fetchProducts()
+  }, [])
 
   const columns: ColumnDef<Product>[] = [
-  {
-    accessorKey: "product_name",
-    header: "Name",
-    cell: ({ row }) => <span className="font-medium">{row.getValue("product_name")}</span>,
-  },
-  {
-    accessorKey: "diameter",
-    header: "Diameter",
-  },
-  {
-    accessorKey: "width",
-    header: "Width",
-  },
-  {
-    accessorKey: "price",
-    header: "Price",
-    cell: ({ row }) => `$${row.getValue("price")}`,
-  },
-  {
-    accessorKey: "category_id",
-    header: "Category",
-     cell: ({ row }) => {
-    const catId = row.getValue("category_id") as number;
-    const category = categories.find(c => c.category_id === catId);
-    return category?.category_name || "-";
-  },
-  },
-  {
-    accessorKey: "location_id",
-    header: "Location",
-  },
-  {
-    accessorKey: "edit",
-    header: "Edit",
-  }
-];
+    {
+      accessorKey: 'product_name',
+      header: 'Name',
+      cell: ({ row }) => <span className="font-medium">{row.getValue('product_name')}</span>,
+    },
+    {
+      accessorKey: 'diameter',
+      header: 'Diameter',
+    },
+    {
+      accessorKey: 'width',
+      header: 'Width',
+    },
+    {
+      accessorKey: 'price',
+      header: 'Price',
+      cell: ({ row }) => `$${row.getValue('price')}`,
+    },
+    {
+      accessorKey: 'category_id',
+      header: 'Category',
+      cell: ({ row }) => {
+        const catId = row.getValue('category_id') as number
+        const category = categories.find((c) => c.category_id === catId)
+        return category?.category_name || '-'
+      },
+    },
+    {
+      accessorKey: 'location_id',
+      header: 'Location',
+    },
+    {
+      accessorKey: 'edit',
+      header: 'Edit',
+    },
+  ]
 
   const table = useReactTable({
     data: products,
@@ -110,17 +110,17 @@ export default function ProductList() {
       sorting,
       globalFilter,
     },
-  });
+  })
 
-  if (loading) return <div className="p-4">Loading products...</div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
+  if (loading) return <div className="p-4">Loading products...</div>
+  if (error) return <div className="p-4 text-red-500">Error: {error}</div>
 
   return (
     <div className="container mx-auto py-10 space-y-4">
       <div className="flex items-center justify-end">
         <Input
           placeholder="Search products..."
-          value={globalFilter ?? ""}
+          value={globalFilter ?? ''}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="max-w-sm"
         />
@@ -140,8 +140,8 @@ export default function ProductList() {
                     <div className="flex items-center gap-2">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {{
-                        asc: " ▲",
-                        desc: " ▼",
+                        asc: ' ▲',
+                        desc: ' ▼',
                       }[header.column.getIsSorted() as string] ?? null}
                     </div>
                   </TableHead>
@@ -159,21 +159,21 @@ export default function ProductList() {
             ) : (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    cell.column.id === "edit" ? (
+                  {row.getVisibleCells().map((cell) =>
+                    cell.column.id === 'edit' ? (
                       <TableCell key={cell.id}>
                         <Link to={`/products/${row.original.product_id}/edit`}>
-                        <Button variant="outline" size="sm">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                          <Button variant="outline" size="sm">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </Link>
                       </TableCell>
-                    ): (
+                    ) : (
                       <TableCell key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
-                    )
-                  ))}
+                    ),
+                  )}
                 </TableRow>
               ))
             )}
@@ -184,11 +184,12 @@ export default function ProductList() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
+            Showing{' '}
+            {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
             {Math.min(
               (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              products.length
-            )}{" "}
+              products.length,
+            )}{' '}
             of {products.length} products
           </span>
         </div>
@@ -227,5 +228,5 @@ export default function ProductList() {
         </div>
       </div>
     </div>
-  );
+  )
 }

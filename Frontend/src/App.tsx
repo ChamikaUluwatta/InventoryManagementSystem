@@ -1,12 +1,12 @@
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom"
-import { AppLayout } from "@/components/Layout/AppLayout"
-import ProductList from "@/components/Product/ProductListView/ProductList"
-import { Button } from "./components/ui/button"
-import EditProduct from "./components/Product/EditProduct/EditProduct"
+import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
+import { AppLayout } from '@/components/Layout/AppLayout'
+import ProductList from '@/components/Product/ProductListView/ProductList'
+import { Button } from './components/ui/button'
+import EditProduct from './components/Product/EditProduct/EditProduct'
 
 function EditProductWrapper() {
-  const { productId } = useParams<{ productId: string }>();
-  return <EditProduct uuid={productId || ""} />;
+  const { productId } = useParams<{ productId: string }>()
+  return <EditProduct uuid={productId || ''} />
 }
 
 function App() {
