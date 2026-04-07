@@ -37,7 +37,7 @@ func main() {
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", mux))
 
 	fmt.Printf("Server starting on :%s\n", os.Getenv("DB_PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("DB_PORT"), checkCors(mux)))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("DB_PORT"), secureHeaders(checkCors(mux))))
 }
 
 func setupRoutes(mux *http.ServeMux, db *pgxpool.Pool, seedEnabled *bool) {
@@ -116,6 +116,10 @@ func checkCors(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 
 		if isPreflight(r) {
+			w.Header().Add("Vary", "Origin")
+			w.Header().Add("Vary", "Access-Control-Request-Method")
+			w.Header().Add("Vary", "Access-Control-Request-Headers")
+
 			method := r.Header.Get("Access-Control-Request-Method")
 			if slices.Contains(allowedList, origin) && slices.Contains(allowedMethods, method) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -124,7 +128,7 @@ func checkCors(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusOK)
 				return
 			}
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 
@@ -132,6 +136,18 @@ func checkCors(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 		w.Header().Add("Vary", "Origin")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func secureHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Cross-Origin-Resource-Policy", "same-site")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+
 		next.ServeHTTP(w, r)
 	})
 }
