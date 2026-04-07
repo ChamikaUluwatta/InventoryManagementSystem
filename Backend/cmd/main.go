@@ -1,30 +1,17 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"slices"
-	"strings"
 
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/seed"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	_ = godotenv.Load()
-
-	seedEnabled := flag.Bool("seed", false, "Enable seed endpoint")
-	flag.Parse()
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	db := setupDatabase()
 
@@ -32,122 +19,15 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	setupRoutes(mux, db, seedEnabled)
+	setupRoutes(mux, db)
 
-	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", mux))
+	baseMiddleware := chain{recoverPanic, logger, secureHeaders, checkCors}
 
-	fmt.Printf("Server starting on :%s\n", os.Getenv("DB_PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("DB_PORT"), secureHeaders(checkCors(mux))))
-}
-
-func setupRoutes(mux *http.ServeMux, db *pgxpool.Pool, seedEnabled *bool) {
-	productRepo := product.NewRepository(db)
-	productService := product.NewService(productRepo)
-	productHandler := product.NewHandler(productService)
-
-	categoryRepo := category.NewRepository(db)
-	categoryService := category.NewService(categoryRepo)
-	categoryHandler := category.NewHandler(categoryService)
-
-	companyRepo := company.NewRepository(db)
-	companyService := company.NewService(companyRepo)
-	companyHandler := company.NewHandler(companyService)
-
-	locationRepo := location.NewRepository(db)
-	locationService := location.NewService(locationRepo)
-	locationHandler := location.NewHandler(locationService)
-
-	inventoryRepo := inventory.NewRepository(db)
-	inventoryService := inventory.NewService(inventoryRepo)
-	inventoryHandler := inventory.NewHandler(inventoryService)
-
-	if *seedEnabled {
-		fmt.Println("Seed endpoint is registered.")
-		seedService := seed.NewService(companyRepo, categoryRepo, locationRepo, productRepo, inventoryRepo, db)
-		seedHandler := seed.NewHandler(seedService)
-		seedHandler.RegisterRoutes(mux)
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		log.Fatal("SERVER_PORT environment variable is not set")
 	}
-
-	productHandler.RegisterRoutes(mux)
-
-	categoryHandler.RegisterRoutes(mux)
-
-	companyHandler.RegisterRoutes(mux)
-
-	locationHandler.RegisterRoutes(mux)
-
-	inventoryHandler.RegisterRoutes(mux)
-}
-
-func setupDatabase() *pgxpool.Pool {
-	connString := os.Getenv("DB_HOST")
-	if connString == "" {
-		log.Fatal("DB environment variable is required")
+	if err := http.ListenAndServe(":"+port, baseMiddleware.Then(mux)); err != nil {
+		log.Fatal(err)
 	}
-
-	db, err := database.NewPool(connString)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	return db
-}
-
-func isPreflight(r *http.Request) bool {
-	return r.Method == "OPTIONS" &&
-		r.Header.Get("Origin") != "" &&
-		r.Header.Get("Access-Control-Request-Method") != ""
-}
-
-var allowedList = []string{
-	"http://localhost:5173",
-	"http://127.0.0.1:5173",
-}
-
-var allowedMethods = []string{
-	"GET",
-	"DELETE",
-	"PUT",
-	"POST",
-	"OPTIONS",
-}
-
-func checkCors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-
-		if isPreflight(r) {
-			w.Header().Add("Vary", "Origin")
-			w.Header().Add("Vary", "Access-Control-Request-Method")
-			w.Header().Add("Vary", "Access-Control-Request-Headers")
-
-			method := r.Header.Get("Access-Control-Request-Method")
-			if slices.Contains(allowedList, origin) && slices.Contains(allowedMethods, method) {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Access-Control-Allow-Methods", strings.Join(allowedMethods, ", "))
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
-
-		if slices.Contains(allowedList, origin) {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-		}
-		w.Header().Add("Vary", "Origin")
-		next.ServeHTTP(w, r)
-	})
-}
-
-func secureHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Cross-Origin-Resource-Policy", "same-site")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
-
-		next.ServeHTTP(w, r)
-	})
 }
