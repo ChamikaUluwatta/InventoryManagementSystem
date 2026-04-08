@@ -43,11 +43,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 
-import { CheckCircle2Icon } from 'lucide-react'
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-
-export default function ProductList() {
+export default function ViewManageProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)

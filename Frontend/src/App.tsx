@@ -1,13 +1,16 @@
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
 import { AppLayout } from '@/components/Layout/AppLayout'
-import ProductList from '@/components/Product/ProductListView/ProductList'
+import ViewManageProducts from '@/components/Product/ViewManageProducts/ViewManageProducts'
 import { Button } from './components/ui/button'
-import EditProduct from './components/Product/EditProduct/EditProduct'
-import AddProduct from './components/Product/AddProduct/AddProduct'
+import ViewEditProduct from '@/components/Product/ViewEditProduct/ViewEditProduct'
+import ViewAddProduct from '@/components/Product/ViewAddProduct/ViewAddProduct'
+import ViewInventory from '@/components/Inventory/ViewInventory/ViewInventory'
+import ViewLocation from '@/components/Location/ViewLocation/ViewLocation'
+import ViewCategory from '@/components/Category/ViewCategory/ViewCategory'
 
-function EditProductWrapper() {
+function ViewEditProductWrapper() {
   const { productId } = useParams<{ productId: string }>()
-  return <EditProduct uuid={productId || ''} />
+  return <ViewEditProduct uuid={productId || ''} />
 }
 
 function App() {
@@ -18,7 +21,7 @@ function App() {
           path="/products"
           element={
             <AppLayout>
-              <ProductList />
+              <ViewManageProducts />
             </AppLayout>
           }
         />
@@ -49,7 +52,7 @@ function App() {
           path="/products/:productId/edit"
           element={
             <AppLayout>
-              <EditProductWrapper />
+              <ViewEditProductWrapper />
             </AppLayout>
           }
         />
@@ -57,7 +60,31 @@ function App() {
           path="/products/add"
           element={
             <AppLayout>
-              <AddProduct />
+              <ViewAddProduct />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/inventory"
+          element={
+            <AppLayout>
+              <ViewInventory />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/locations"
+          element={
+            <AppLayout>
+              <ViewLocation />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/categories"
+          element={
+            <AppLayout>
+              <ViewCategory />
             </AppLayout>
           }
         />

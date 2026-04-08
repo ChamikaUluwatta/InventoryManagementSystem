@@ -19,15 +19,15 @@ import { PackageIcon, PlusIcon, MinusIcon } from 'lucide-react'
 const data = {
   navMain: [
     {
-      title: 'Products',
-      url: '/products',
-      items: [{ title: 'View All Products', url: '/products', disabled: false }, { title: 'Add Product', url: '/products/add', disabled: false }],
-    },
-    {
-      title: 'Inventory',
-      url: '/inventory',
-      items: [{ title: 'Manage', url: '/inventory', disabled: false }],
-    },
+      title: 'Home',
+      url: '/',
+      items: [
+        { title: 'Products', url: '/products', disabled: false },
+        { title: 'Inventory', url: '/inventory', disabled: false },
+        { title: 'Locations', url: '/locations', disabled: false },
+        { title: 'Categories', url: '/categories', disabled: false },
+      ],
+    }
   ],
 }
 

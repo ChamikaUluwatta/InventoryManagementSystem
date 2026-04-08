@@ -1,6 +1,6 @@
 import type { Location } from '@/types/location'
 
-const API_BASE_URL = 'http://localhost:8080/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
 
 export const getAllLocations = async (): Promise<Location[]> => {
   const response = await fetch(`${API_BASE_URL}/locations`)

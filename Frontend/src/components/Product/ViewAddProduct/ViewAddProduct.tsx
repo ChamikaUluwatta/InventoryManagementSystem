@@ -1,18 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Product } from '@/types/product'
-import type { Category } from '@/types/category'
-import type { Company } from '@/types/company'
-import type { Location } from '@/types/location'
-import { updateProduct, getProductById } from '@/services/productService'
-import { getAllCategories } from '@/services/categoryService'
-import { getAllCompanies } from '@/services/companyService'
-import { getAllLocations } from '@/services/locationService'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -20,15 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
+import * as z from 'zod'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type { Category } from '@/types/category'
+import type { Company } from '@/types/company'
+import type { Location } from '@/types/location'
+import { createProduct } from '@/services/productService'
+import { getAllCategories } from '@/services/categoryService'
+import { getAllCompanies } from '@/services/companyService'
+import { getAllLocations } from '@/services/locationService'
 import { Textarea } from '@/components/ui/textarea'
 
-type Props = {
-  uuid: string
-}
-
-const formSchema = z
+export const formSchema = z
   .object({
     product_name: z.string().min(1, 'Product name is required'),
     product_description: z.string().optional(),
@@ -54,14 +49,14 @@ const formSchema = z
 
 type FormData = z.infer<typeof formSchema>
 
-export default function EditProduct(props: Props) {
+export default function ViewAddProduct() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [locations, setLocations] = useState<Location[]>([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -80,63 +75,49 @@ export default function EditProduct(props: Props) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productData, categoriesData, companiesData, locationsData] = await Promise.all([
-          getProductById(props.uuid),
+        const [categoriesData, companiesData, locationsData] = await Promise.all([
           getAllCategories(),
           getAllCompanies(),
           getAllLocations(),
         ])
-
         setCategories(categoriesData)
         setCompanies(companiesData)
         setLocations(locationsData)
-
-        form.reset({
-          product_name: productData.product_name,
-          product_description: productData.product_description || '',
-          diameter: productData.diameter,
-          width: productData.width,
-          price: productData.price,
-          category_id: productData.category_id,
-          company_id: productData.company_id.toString(),
-          location_id: productData.location_id,
-        })
-        console.log('Fetched product data:', productData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data')
       } finally {
         setLoading(false)
       }
     }
-
     fetchData()
-  }, [props.uuid])
+  }, [])
 
   async function onSubmit(data: FormData) {
     setSaving(true)
     try {
-      const updatedProduct: Partial<Product> = {
+      const locationValue = data.location_id !== '' ? data.location_id : 'unassigned'
+      const createdProduct = {
         product_name: data.product_name,
-        product_description: data.product_description,
+        product_description: data.product_description || '',
         diameter: data.diameter,
         width: data.width,
         price: data.price,
-        category_id: data.category_id,
+        category_id: data.category_id || 0,
         company_id: data.company_id,
-        location_id: data.location_id,
+        location_id: locationValue as string,
       }
 
-      await updateProduct(props.uuid, updatedProduct)
+      await createProduct(createdProduct)
       navigate('/products')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update product')
+      setError(err instanceof Error ? err.message : 'Failed to create product')
     } finally {
       setSaving(false)
     }
   }
 
   if (loading) {
-    return <div className="p-4">Loading product...</div>
+    return <div className="p-4">Loading...</div>
   }
 
   if (error) {
@@ -144,26 +125,29 @@ export default function EditProduct(props: Props) {
   }
 
   return (
-    <div className="container mx-auto py-10 max-w-2xl">
+    <div className="container mx-auto py-10">
       <Card>
         <CardHeader className="flex flex-row justify-center">
-          <CardTitle>Edit Product</CardTitle>
+          <CardTitle>Add Product</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="product_name">Product Name</Label>
-              <Input id="product_name" {...form.register('product_name')} />
-              {form.formState.errors.product_name && (
-                <p className="text-sm text-red-500">{form.formState.errors.product_name.message}</p>
-              )}
-            </div>
+            <div className='flex flex-row gap-6'>
+              <div className="space-y-2">
+                <Label htmlFor="product_name">Product Name</Label>
+                <Input id="product_name" placeholder='Type your product name' {...form.register('product_name')} />
+                {form.formState.errors.product_name && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.product_name.message}
+                  </p>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="product_description">Description</Label>
-              <Textarea id="product_description" className='min-h-25 resize-y' {...form.register('product_description')} />
+              <div className="space-y-2 grow-3">
+                <Label htmlFor="product_description">Description</Label>
+                <Textarea id="product_description" className='min-h-25 resize-y' placeholder='Type your product description' {...form.register('product_description')} />
+              </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="diameter">Diameter</Label>
@@ -279,15 +263,16 @@ export default function EditProduct(props: Props) {
                 )}
               </div>
             </div>
-
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/products')}>
-                Cancel
-              </Button>
-            </div>
+            <CardFooter>
+              <div className="flex gap-4 pt-4">
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate('/products')}>
+                  Cancel
+                </Button>
+              </div>
+            </CardFooter>
           </form>
         </CardContent>
       </Card>
