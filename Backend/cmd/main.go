@@ -9,8 +9,10 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+	if os.Getenv("DB_HOST") == "" {
+		if err := godotenv.Load(); err != nil {
+			log.Fatal("Error loading .env file")
+		}
 	}
 
 	db := setupDatabase()
@@ -29,5 +31,7 @@ func main() {
 	}
 	if err := http.ListenAndServe(":"+port, baseMiddleware.Then(mux)); err != nil {
 		log.Fatal(err)
+	} else {
+		log.Printf("Server is running on port %s", port)
 	}
 }
