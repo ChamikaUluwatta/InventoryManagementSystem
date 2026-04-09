@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node -e \"const env=process.env.VITE_API_URL; if(process.env.NODE_ENV==='production'&&!env){console.error('ERROR: VITE_API_URL is required for production build');process.exit(1)} console.log('Using VITE_API_URL:', env || 'fallback (development mode)')\" && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "format": "prettier --write .",
