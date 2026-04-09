@@ -31,7 +31,5 @@ func main() {
 	}
 	if err := http.ListenAndServe(":"+port, baseMiddleware.Then(mux)); err != nil {
 		log.Fatal(err)
-	} else {
-		log.Printf("Server is running on port %s", port)
 	}
 }
