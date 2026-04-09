@@ -1,0 +1,40 @@
+name: Test Migrations
+
+on:
+ pull_request:
+   branches: [ main ]
+
+jobs:
+ test-migrations:
+   runs-on: ubuntu-latest
+
+   services:
+     postgres:
+       image: postgres:14
+       env:
+         POSTGRES_USER: postgres
+         POSTGRES_PASSWORD: postgres
+         POSTGRES_DB: testdb
+       ports:
+         - 5432:5432
+       options: >-
+         --health-cmd pg_isready
+         --health-interval 10s
+         --health-timeout 5s
+         --health-retries 5
+
+   steps:
+   - uses: actions/checkout@v4
+
+   - name: Install migrate
+     run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/
+
+   - name: Run migrations up
+     run: |
+       migrate -path Backend/internal/database/migrations -database "postgresql://postgres:postgres@localhost:5432/testdb?sslmode=disable" up
+
+   - name: Run migrations down
+     run: |
+       migrate -path Backend/internal/database/migrations -database "postgresql://postgres:postgres@localhost:5432/testdb?sslmode=disable" down -all

@@ -2,12 +2,9 @@
 name: Deploy
 
 on:         
-  workflow_dispatch:   
-    inputs:
-      migrate_only:
-        description: 'Run migrations only'
-        type: boolean
-        default: false
+  push:
+    branches:
+      - main
 
 jobs:
   migrate:
