@@ -1,10 +1,16 @@
 import type { Inventory, InventoryView } from '@/types/inventory';
 import type { Product } from '@/types/product';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+if (!API_BASE_URL && import.meta.env.MODE === 'production') {
+  throw new Error('VITE_API_URL environment variable is required for production build');
+}
+
+const API_BASE = API_BASE_URL || 'http://localhost:8080/api/v1';
 
 export const getAllInventories = async (): Promise<Inventory[]> => {
-  const response = await fetch(`${API_BASE_URL}/inventories`);
+  const response = await fetch(`${API_BASE}/inventories`);
   if (!response.ok) {
     throw new Error('Failed to fetch inventories');
   }
@@ -12,7 +18,7 @@ export const getAllInventories = async (): Promise<Inventory[]> => {
 };
 
 export const getAllProducts = async (): Promise<Product[]> => {
-  const response = await fetch(`${API_BASE_URL}/products`);
+  const response = await fetch(`${API_BASE}/products`);
   if (!response.ok) {
     throw new Error('Failed to fetch products');
   }
