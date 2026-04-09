@@ -5,7 +5,7 @@ on:
   workflow_dispatch:   
     inputs:
       migrate_only:
-        description: 'Run migrations only, skip deploy'
+        description: 'Run migrations only'
         type: boolean
         default: false
 
@@ -28,19 +28,3 @@ jobs:
           migrate -path Backend/internal/database/migrations \
                   -database "$DATABASE_URL" \
                   up
-
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    needs: migrate                         
-    if: ${{ github.event.inputs.migrate_only != 'true' }}  
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy backend
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service backend
