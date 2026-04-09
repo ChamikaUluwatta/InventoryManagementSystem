@@ -12,6 +12,7 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +31,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    environment: production
     needs: migrate                         
     if: ${{ github.event.inputs.migrate_only != 'true' }}  
     steps:
