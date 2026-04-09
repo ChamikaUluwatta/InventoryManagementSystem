@@ -42,7 +42,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-
+import { Spinner } from '@/components/ui/spinner'
 
 export default function ViewManageProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -133,7 +133,13 @@ export default function ViewManageProducts() {
     },
   })
 
-  if (loading) return <div className="p-4">Loading products...</div>
+  if (loading)
+    return (
+      <div className="flex items-center gap-4 justify-center h-full">
+        <Spinner className="size-12" />
+        <p>Loading...</p>
+      </div>
+    )
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
 
   return (

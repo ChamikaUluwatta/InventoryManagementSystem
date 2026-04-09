@@ -23,6 +23,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Spinner } from '@/components/ui/spinner'
 
 type Props = {
   uuid: string
@@ -136,7 +137,12 @@ export default function ViewEditProduct(props: Props) {
   }
 
   if (loading) {
-    return <div className="p-4">Loading product...</div>
+    return (
+      <div className="flex items-center gap-4 justify-center h-full">
+        <Spinner className="size-12" />
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   if (error) {

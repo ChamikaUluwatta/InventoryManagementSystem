@@ -22,6 +22,7 @@ import { getAllCategories } from '@/services/categoryService'
 import { getAllCompanies } from '@/services/companyService'
 import { getAllLocations } from '@/services/locationService'
 import { Textarea } from '@/components/ui/textarea'
+import { Spinner } from '@/components/ui/spinner'
 
 export const formSchema = z
   .object({
@@ -117,7 +118,12 @@ export default function ViewAddProduct() {
   }
 
   if (loading) {
-    return <div className="p-4">Loading...</div>
+    return  (
+      <div className="flex items-center gap-4 justify-center h-full">
+        <Spinner className="size-12" />
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   if (error) {

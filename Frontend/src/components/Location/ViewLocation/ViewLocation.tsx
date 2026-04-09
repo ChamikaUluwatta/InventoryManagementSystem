@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import type { Location } from '@/types/location'
 import { getAllLocations } from '@/services/locationService'
+import { Spinner } from '@/components/ui/spinner'
 
 const columns: ColumnDef<Location>[] = [
   {
@@ -77,7 +78,12 @@ export default function ViewLocation() {
     },
   })
 
-  if (loading) return <div className="p-4">Loading locations...</div>
+  if (loading) return (
+      <div className="flex items-center gap-4 justify-center h-full">
+        <Spinner className="size-12" />
+        <p>Loading...</p>
+      </div>
+    )
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
 
   return (
