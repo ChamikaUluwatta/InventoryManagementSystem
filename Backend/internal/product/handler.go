@@ -2,9 +2,10 @@ package product
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
 )
 
@@ -17,29 +18,24 @@ func NewHandler(service Service) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST  /products", h.Create)
-	mux.HandleFunc("GET  /products", h.GetAll)
-	mux.HandleFunc("GET  /products/{id}", h.GetByID)
-	mux.HandleFunc("PUT  /products/{id}", h.Update)
-	mux.HandleFunc("DELETE  /products/{id}", h.Delete)
-	mux.HandleFunc("GET  /products/by-company/{companyId}", h.GetByCompany)
-	mux.HandleFunc("GET  /products/by-category/{categoryId}", h.GetByCategory)
+	mux.HandleFunc("POST /products", h.Create)
+	mux.HandleFunc("GET /products", h.GetAll)
+	mux.HandleFunc("GET /products/{id}", h.GetByID)
+	mux.HandleFunc("PUT /products/{id}", h.Update)
+	mux.HandleFunc("DELETE /products/{id}", h.Delete)
+	mux.HandleFunc("GET /products/by-company/{companyId}", h.GetByCompany)
+	mux.HandleFunc("GET /products/by-category/{categoryId}", h.GetByCategory)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req Product
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 
 	if err := h.service.CreateProduct(r.Context(), &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -49,21 +45,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid product id", err))
 		return
 	}
 
 	result, err := h.service.GetProductByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Not found", http.StatusNotFound)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -72,14 +63,9 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	results, err := h.service.GetAllProducts(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -88,27 +74,22 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid product id", err))
 		return
 	}
 
 	var req Product
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 	req.ProductID = id
 
 	if err := h.service.UpdateProduct(r.Context(), &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -117,20 +98,15 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid product id", err))
 		return
 	}
 
 	if err := h.service.DeleteProduct(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -138,21 +114,16 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByCompany(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("companyId")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		http.Error(w, "Invalid company ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid company id", err))
 		return
 	}
 
 	results, err := h.service.GetProductsByCompany(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -161,21 +132,16 @@ func (h *Handler) GetByCompany(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByCategory(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("categoryId")
-	var id int
-	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-		http.Error(w, "Invalid category ID", http.StatusBadRequest)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		apperror.HandleError(w, apperror.BadRequest("invalid category id", err))
 		return
 	}
 
 	results, err := h.service.GetProductsByCategory(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 

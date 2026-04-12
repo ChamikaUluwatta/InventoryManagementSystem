@@ -2,8 +2,9 @@ package category
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -38,7 +39,7 @@ func (r *repository) Create(ctx context.Context, category *Category) error {
 	err := r.db.QueryRow(ctx, query, args).Scan(&category.CategoryID)
 
 	if err != nil {
-		return fmt.Errorf("failed to create category: %w", err)
+		return apperror.Internal("failed to create category", err)
 	}
 	return nil
 }
@@ -60,7 +61,10 @@ func (r *repository) GetByID(ctx context.Context, id int) (*Category, error) {
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get category by id: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperror.NotFound("category not found", err)
+		}
+		return nil, apperror.Internal("failed to get category by id", err)
 	}
 	return &category, nil
 }
@@ -73,7 +77,7 @@ func (r *repository) GetAll(ctx context.Context) ([]Category, error) {
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all categories: %w", err)
+		return nil, apperror.Internal("failed to get all categories", err)
 	}
 	defer rows.Close()
 
@@ -90,10 +94,12 @@ func (r *repository) Update(ctx context.Context, category *Category) error {
 		"parent_id":     category.ParentID,
 		"category_id":   category.CategoryID,
 	}
-	_, err := r.db.Exec(ctx, query, args)
-
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to update category: %w", err)
+		return apperror.Internal("failed to update category", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("category not found", nil)
 	}
 	return nil
 }
@@ -104,9 +110,12 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 		"category_id": id,
 	}
 
-	_, err := r.db.Exec(ctx, query, args)
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to delete category: %w", err)
+		return apperror.Internal("failed to delete category", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("category not found", nil)
 	}
 	return nil
 }
@@ -123,7 +132,7 @@ func (r *repository) GetByParent(ctx context.Context, parentID *int) ([]Category
 	}
 	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get categories by parent: %w", err)
+		return nil, apperror.Internal("failed to get categories by parent", err)
 	}
 	defer rows.Close()
 

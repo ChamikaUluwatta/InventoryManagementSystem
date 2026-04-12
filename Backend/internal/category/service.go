@@ -2,10 +2,9 @@ package category
 
 import (
 	"context"
-	"errors"
-)
 
-var ErrInvalidCategoryName = errors.New("invalid category name")
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+)
 
 type Service struct {
 	repo Repository
@@ -17,7 +16,7 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) CreateCategory(ctx context.Context, category *Category) error {
 	if category.CategoryName == "" {
-		return ErrInvalidCategoryName
+		return apperror.BadRequest("category name is required", nil)
 	}
 	return s.repo.Create(ctx, category)
 }
@@ -32,7 +31,7 @@ func (s *Service) GetAllCategories(ctx context.Context) ([]Category, error) {
 
 func (s *Service) UpdateCategory(ctx context.Context, category *Category) error {
 	if category.CategoryName == "" {
-		return ErrInvalidCategoryName
+		return apperror.BadRequest("category name is required", nil)
 	}
 	return s.repo.Update(ctx, category)
 }

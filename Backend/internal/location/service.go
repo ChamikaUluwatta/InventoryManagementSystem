@@ -2,10 +2,9 @@ package location
 
 import (
 	"context"
-	"errors"
-)
 
-var ErrInvalidLocationID = errors.New("invalid location id")
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+)
 
 type Service struct {
 	repo Repository
@@ -17,13 +16,13 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) CreateLocation(ctx context.Context, location *Location) error {
 	if location.LocationID == "" {
-		return ErrInvalidLocationID
+		return apperror.BadRequest("location id is required", nil)
 	}
 	return s.repo.Create(ctx, location)
 }
 
 func (s *Service) GetLocationByID(ctx context.Context, id string) (*Location, error) {
-	return s.repo.GetById(ctx, id)
+	return s.repo.GetByID(ctx, id)
 }
 
 func (s *Service) GetAllLocations(ctx context.Context) ([]Location, error) {
@@ -32,7 +31,7 @@ func (s *Service) GetAllLocations(ctx context.Context) ([]Location, error) {
 
 func (s *Service) UpdateLocation(ctx context.Context, location *Location) error {
 	if location.LocationID == "" {
-		return ErrInvalidLocationID
+		return apperror.BadRequest("location id is required", nil)
 	}
 	return s.repo.Update(ctx, location)
 }

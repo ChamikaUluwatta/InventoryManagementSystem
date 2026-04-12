@@ -2,14 +2,9 @@ package product
 
 import (
 	"context"
-	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
-)
-
-var (
-	ErrInvalidProductName = errors.New("invalid product name")
-	ErrInvalidPrice       = errors.New("price cannot be negative")
 )
 
 type Service interface {
@@ -36,10 +31,10 @@ func newService(repo Repository) *service {
 
 func (s *service) CreateProduct(ctx context.Context, product *Product) error {
 	if product.ProductName == "" {
-		return ErrInvalidProductName
+		return apperror.BadRequest("product name is required", nil)
 	}
 	if product.Price.IsNegative() {
-		return ErrInvalidPrice
+		return apperror.BadRequest("price cannot be negative", nil)
 	}
 	return s.repo.Create(ctx, product)
 }
@@ -54,10 +49,10 @@ func (s *service) GetAllProducts(ctx context.Context) ([]Product, error) {
 
 func (s *service) UpdateProduct(ctx context.Context, product *Product) error {
 	if product.ProductName == "" {
-		return ErrInvalidProductName
+		return apperror.BadRequest("product name is required", nil)
 	}
 	if product.Price.IsNegative() {
-		return ErrInvalidPrice
+		return apperror.BadRequest("price cannot be negative", nil)
 	}
 	return s.repo.Update(ctx, product)
 }

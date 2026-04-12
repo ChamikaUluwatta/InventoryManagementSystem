@@ -2,8 +2,9 @@ package location
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -11,7 +12,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, location *Location) error
 	GetAll(ctx context.Context) ([]Location, error)
-	GetById(ctx context.Context, id string) (*Location, error)
+	GetByID(ctx context.Context, id string) (*Location, error)
 	Update(ctx context.Context, location *Location) error
 	Delete(ctx context.Context, id string) error
 }
@@ -33,7 +34,7 @@ func (r *repository) Create(ctx context.Context, location *Location) error {
 	_, err := r.db.Exec(ctx, query, args)
 
 	if err != nil {
-		return fmt.Errorf("unable to insert row: %w", err)
+		return apperror.Internal("failed to create location", err)
 	}
 	return nil
 }
@@ -45,10 +46,12 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 		"location_id": id,
 	}
 
-	_, err := r.db.Exec(ctx, query, args)
-
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("unable to delete row: %w", err)
+		return apperror.Internal("failed to delete location", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("location not found", nil)
 	}
 	return nil
 }
@@ -58,19 +61,19 @@ func (r *repository) GetAll(ctx context.Context) ([]Location, error) {
 	rows, err := r.db.Query(ctx, query)
 
 	if err != nil {
-		return nil, fmt.Errorf("unable to query rows: %w", err)
+		return nil, apperror.Internal("failed to get all locations", err)
 	}
 	defer rows.Close()
-	Location, err := pgx.CollectRows(rows, pgx.RowToStructByName[Location])
+	locations, err := pgx.CollectRows(rows, pgx.RowToStructByName[Location])
 
 	if err != nil {
-		return nil, fmt.Errorf("unable to collect rows: %w", err)
+		return nil, apperror.Internal("failed to collect location rows", err)
 	}
 
-	return Location, nil
+	return locations, nil
 }
 
-func (r *repository) GetById(ctx context.Context, id string) (*Location, error) {
+func (r *repository) GetByID(ctx context.Context, id string) (*Location, error) {
 	query := `SELECT location_id,image FROM "locations" WHERE location_id = @location_id`
 	args := pgx.NamedArgs{
 		"location_id": id,
@@ -79,7 +82,10 @@ func (r *repository) GetById(ctx context.Context, id string) (*Location, error) 
 	err := r.db.QueryRow(ctx, query, args).Scan(&location.LocationID, &location.Image)
 
 	if err != nil {
-		return nil, fmt.Errorf("Invalid Location id %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperror.NotFound("location not found", err)
+		}
+		return nil, apperror.Internal("failed to get location by id", err)
 	}
 
 	return &location, nil
@@ -94,10 +100,13 @@ func (r *repository) Update(ctx context.Context, location *Location) error {
 		"location_id": location.LocationID,
 		"image":       location.Image,
 	}
-	_, err := r.db.Exec(ctx, query, args)
+	result, err := r.db.Exec(ctx, query, args)
 
 	if err != nil {
-		return fmt.Errorf("failed to update location: %w", err)
+		return apperror.Internal("failed to update location", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("location not found", nil)
 	}
 	return nil
 }

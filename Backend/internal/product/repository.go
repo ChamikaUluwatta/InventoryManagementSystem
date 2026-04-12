@@ -2,8 +2,9 @@ package product
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,7 +46,7 @@ func (r *repository) Create(ctx context.Context, product *Product) error {
 	err := r.db.QueryRow(ctx, query, args).Scan(&product.ProductID)
 
 	if err != nil {
-		return fmt.Errorf("failed to create product: %w", err)
+		return apperror.Internal("failed to create product", err)
 	}
 	return nil
 }
@@ -70,7 +71,10 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get product by id: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperror.NotFound("product not found", err)
+		}
+		return nil, apperror.Internal("failed to get product by id", err)
 	}
 	return &product, nil
 }
@@ -83,7 +87,7 @@ func (r *repository) GetAll(ctx context.Context) ([]Product, error) {
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all products: %w", err)
+		return nil, apperror.Internal("failed to get all products", err)
 	}
 	defer rows.Close()
 
@@ -108,10 +112,12 @@ func (r *repository) Update(ctx context.Context, product *Product) error {
 		"category_id":         product.CategoryID,
 		"location_id":         product.LocationID,
 	}
-	_, err := r.db.Exec(ctx, query, args)
-
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to update product: %w", err)
+		return apperror.Internal("failed to update product", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("product not found", nil)
 	}
 	return nil
 }
@@ -122,9 +128,12 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 	args := pgx.NamedArgs{
 		"product_id": id,
 	}
-	_, err := r.db.Exec(ctx, query, args)
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to delete product: %w", err)
+		return apperror.Internal("failed to delete product", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("product not found", nil)
 	}
 	return nil
 }
@@ -141,7 +150,7 @@ func (r *repository) GetByCompany(ctx context.Context, companyID uuid.UUID) ([]P
 	}
 	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get products by company: %w", err)
+		return nil, apperror.Internal("failed to get products by company", err)
 	}
 	defer rows.Close()
 
@@ -160,7 +169,7 @@ func (r *repository) GetByCategory(ctx context.Context, categoryID int) ([]Produ
 	}
 	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get products by category: %w", err)
+		return nil, apperror.Internal("failed to get products by category", err)
 	}
 	defer rows.Close()
 

@@ -2,8 +2,9 @@ package inventory
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -41,7 +42,7 @@ func (r *repository) Create(ctx context.Context, inventory *Inventory) error {
 	err := r.db.QueryRow(ctx, query, args).Scan(&inventory.InventoryID)
 
 	if err != nil {
-		return fmt.Errorf("failed to create inventory: %w", err)
+		return apperror.Internal("failed to create inventory", err)
 	}
 	return nil
 }
@@ -64,7 +65,10 @@ func (r *repository) GetByID(ctx context.Context, id int) (*Inventory, error) {
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get inventory by id: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperror.NotFound("inventory not found", err)
+		}
+		return nil, apperror.Internal("failed to get inventory by id", err)
 	}
 	return &inventory, nil
 }
@@ -77,7 +81,7 @@ func (r *repository) GetAll(ctx context.Context) ([]Inventory, error) {
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all inventories: %w", err)
+		return nil, apperror.Internal("failed to get all inventories", err)
 	}
 	defer rows.Close()
 
@@ -96,10 +100,12 @@ func (r *repository) Update(ctx context.Context, inventory *Inventory) error {
 		"stock":        inventory.Stock,
 		"inventory_id": inventory.InventoryID,
 	}
-	_, err := r.db.Exec(ctx, query, args)
-
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to update inventory: %w", err)
+		return apperror.Internal("failed to update inventory", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("inventory not found", nil)
 	}
 	return nil
 }
@@ -110,9 +116,12 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 		"inventory_id": id,
 	}
 
-	_, err := r.db.Exec(ctx, query, args)
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to delete inventory: %w", err)
+		return apperror.Internal("failed to delete inventory", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("inventory not found", nil)
 	}
 	return nil
 }
@@ -129,7 +138,7 @@ func (r *repository) GetByProduct(ctx context.Context, productID uuid.UUID) ([]I
 	}
 	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get inventories by product: %w", err)
+		return nil, apperror.Internal("failed to get inventories by product", err)
 	}
 	defer rows.Close()
 
@@ -148,7 +157,7 @@ func (r *repository) GetByLocation(ctx context.Context, locationID string) ([]In
 	}
 	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get inventories by location: %w", err)
+		return nil, apperror.Internal("failed to get inventories by location", err)
 	}
 	defer rows.Close()
 

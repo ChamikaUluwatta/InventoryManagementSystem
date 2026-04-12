@@ -3,6 +3,8 @@ package location
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 )
 
 type Handler struct {
@@ -14,27 +16,22 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST  /locations", h.Create)
-	mux.HandleFunc("GET  /locations", h.GetAll)
-	mux.HandleFunc("GET  /locations/{id}", h.GetByID)
-	mux.HandleFunc("PUT  /locations/{id}", h.Update)
-	mux.HandleFunc("DELETE  /locations/{id}", h.Delete)
+	mux.HandleFunc("POST /locations", h.Create)
+	mux.HandleFunc("GET /locations", h.GetAll)
+	mux.HandleFunc("GET /locations/{id}", h.GetByID)
+	mux.HandleFunc("PUT /locations/{id}", h.Update)
+	mux.HandleFunc("DELETE /locations/{id}", h.Delete)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req Location
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 
 	if err := h.service.CreateLocation(r.Context(), &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -44,20 +41,15 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	id := r.PathValue("id")
 	if id == "" {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
 		return
 	}
 
 	result, err := h.service.GetLocationByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Not found", http.StatusNotFound)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -66,14 +58,9 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	results, err := h.service.GetAllLocations(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -82,26 +69,21 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	id := r.PathValue("id")
 	if id == "" {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
 		return
 	}
 
 	var req Location
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 	req.LocationID = id
 
 	if err := h.service.UpdateLocation(r.Context(), &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -110,19 +92,14 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	id := r.PathValue("id")
 	if id == "" {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
 		return
 	}
 
 	if err := h.service.DeleteLocation(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 

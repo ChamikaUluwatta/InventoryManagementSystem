@@ -2,12 +2,10 @@ package inventory
 
 import (
 	"context"
-	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
 )
-
-var ErrInvalidStock = errors.New("stock cannot be negative")
 
 type Service struct {
 	repo Repository
@@ -19,7 +17,7 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) CreateInventory(ctx context.Context, inventory *Inventory) error {
 	if inventory.Stock < 0 {
-		return ErrInvalidStock
+		return apperror.BadRequest("stock cannot be negative", nil)
 	}
 	return s.repo.Create(ctx, inventory)
 }
@@ -34,7 +32,7 @@ func (s *Service) GetAllInventories(ctx context.Context) ([]Inventory, error) {
 
 func (s *Service) UpdateInventory(ctx context.Context, inventory *Inventory) error {
 	if inventory.Stock < 0 {
-		return ErrInvalidStock
+		return apperror.BadRequest("stock cannot be negative", nil)
 	}
 	return s.repo.Update(ctx, inventory)
 }
