@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -42,6 +43,15 @@ func (r *repository) Create(ctx context.Context, inventory *Inventory) error {
 	err := r.db.QueryRow(ctx, query, args).Scan(&inventory.InventoryID)
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23503":
+				return apperror.BadRequest("invalid product_id or location_id", err)
+			case "23505":
+				return apperror.Conflict("inventory already exists for product and location", err)
+			}
+		}
 		return apperror.Internal("failed to create inventory", err)
 	}
 	return nil
@@ -102,6 +112,15 @@ func (r *repository) Update(ctx context.Context, inventory *Inventory) error {
 	}
 	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23503":
+				return apperror.BadRequest("invalid product_id or location_id", err)
+			case "23505":
+				return apperror.Conflict("inventory already exists for product and location", err)
+			}
+		}
 		return apperror.Internal("failed to update inventory", err)
 	}
 	if result.RowsAffected() == 0 {
