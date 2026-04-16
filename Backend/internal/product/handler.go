@@ -23,8 +23,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /products/{id}", h.GetByID)
 	mux.HandleFunc("PUT /products/{id}", h.Update)
 	mux.HandleFunc("DELETE /products/{id}", h.Delete)
-	mux.HandleFunc("GET /products/by-company/{companyId}", h.GetByCompany)
-	mux.HandleFunc("GET /products/by-category/{categoryId}", h.GetByCategory)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +61,13 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	results, err := h.service.GetAllProducts(r.Context())
+	params, err := parseGetProductsQueryParams(r)
+
+	if err != nil {
+		apperror.HandleError(w, err)
+		return
+	}
+	results, err := h.service.GetAllProducts(r.Context(), params)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -113,38 +117,34 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) GetByCompany(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("companyId")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		apperror.HandleError(w, apperror.BadRequest("invalid company id", err))
-		return
-	}
-
-	results, err := h.service.GetProductsByCompany(r.Context(), id)
-	if err != nil {
-		apperror.HandleError(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+type GetProductsQueryParams struct {
+	CategoryID *int
+	CompanyID  *uuid.UUID
 }
 
-func (h *Handler) GetByCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("categoryId")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		apperror.HandleError(w, apperror.BadRequest("invalid category id", err))
-		return
+func parseGetProductsQueryParams(r *http.Request) (GetProductsQueryParams, error) {
+	q := r.URL.Query()
+
+	var params GetProductsQueryParams
+
+	category_id := q.Get("category")
+	company_id := q.Get("company")
+
+	if category_id != "" {
+		catID, err := strconv.Atoi(category_id)
+		if err != nil {
+			return params, apperror.BadRequest("Invalid Category Id value", err)
+		}
+		params.CategoryID = &catID
 	}
 
-	results, err := h.service.GetProductsByCategory(r.Context(), id)
-	if err != nil {
-		apperror.HandleError(w, err)
-		return
+	if company_id != "" {
+		compId, err := uuid.Parse(company_id)
+		if err != nil {
+			return params, apperror.BadRequest("Invalid Company Id value", err)
+		}
+		params.CompanyID = &compId
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+	return params, nil
 }

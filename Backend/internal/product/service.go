@@ -10,11 +10,9 @@ import (
 type Service interface {
 	CreateProduct(ctx context.Context, product *Product) error
 	GetProductByID(ctx context.Context, id uuid.UUID) (*Product, error)
-	GetAllProducts(ctx context.Context) ([]Product, error)
+	GetAllProducts(ctx context.Context, params GetProductsQueryParams) ([]Product, error)
 	UpdateProduct(ctx context.Context, product *Product) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
-	GetProductsByCompany(ctx context.Context, companyID uuid.UUID) ([]Product, error)
-	GetProductsByCategory(ctx context.Context, categoryID int) ([]Product, error)
 }
 
 type service struct {
@@ -43,8 +41,8 @@ func (s *service) GetProductByID(ctx context.Context, id uuid.UUID) (*Product, e
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *service) GetAllProducts(ctx context.Context) ([]Product, error) {
-	return s.repo.GetAll(ctx)
+func (s *service) GetAllProducts(ctx context.Context, params GetProductsQueryParams) ([]Product, error) {
+	return s.repo.GetAll(ctx, params)
 }
 
 func (s *service) UpdateProduct(ctx context.Context, product *Product) error {
@@ -59,12 +57,4 @@ func (s *service) UpdateProduct(ctx context.Context, product *Product) error {
 
 func (s *service) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
-}
-
-func (s *service) GetProductsByCompany(ctx context.Context, companyID uuid.UUID) ([]Product, error) {
-	return s.repo.GetByCompany(ctx, companyID)
-}
-
-func (s *service) GetProductsByCategory(ctx context.Context, categoryID int) ([]Product, error) {
-	return s.repo.GetByCategory(ctx, categoryID)
 }

@@ -13,7 +13,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, product *Product) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Product, error)
-	GetAll(ctx context.Context) ([]Product, error)
+	GetAll(ctx context.Context, params GetProductsQueryParams) ([]Product, error)
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByCompany(ctx context.Context, companyID uuid.UUID) ([]Product, error)
@@ -79,13 +79,35 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error
 	return &product, nil
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]Product, error) {
+func (r *repository) GetAll(ctx context.Context, params GetProductsQueryParams) ([]Product, error) {
 	query := `
-		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
-		FROM "products"
-		ORDER BY product_name`
+		SELECT 
+			i.stock,
+			p.product_id,
+			p.product_name, 
+			p.product_description, 
+			p.diameter, 
+			p.width, 
+			p.company_id, 
+			p.price, 
+			p.category_id, 
+			p.location_id
+		FROM "products" p 
+		JOIN "inventories" i 
+		on p.product_id = i.product_id 
+		where 
+			(@company_id::uuid IS NULL OR p.company_id = @company_id::uuid) 
+			AND 
+			(@category_id::int IS NULL OR p.category_id = @category_id::int)
+		ORDER BY 
+			p.product_name`
 
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(ctx, query,
+		pgx.NamedArgs{
+			"company_id":  params.CompanyID,
+			"category_id": params.CategoryID,
+		},
+	)
 	if err != nil {
 		return nil, apperror.Internal("failed to get all products", err)
 	}
