@@ -2,8 +2,9 @@ package company
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -37,7 +38,7 @@ func (r *repository) Create(ctx context.Context, company *Company) error {
 	err := r.db.QueryRow(ctx, query, args).Scan(&company.CompanyID)
 
 	if err != nil {
-		return fmt.Errorf("failed to create company: %w", err)
+		return apperror.Internal("failed to create company", err)
 	}
 	return nil
 }
@@ -58,7 +59,10 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Company, error
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get company by id: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperror.NotFound("company not found", err)
+		}
+		return nil, apperror.Internal("failed to get company by id", err)
 	}
 	return &company, nil
 }
@@ -71,7 +75,7 @@ func (r *repository) GetAll(ctx context.Context) ([]Company, error) {
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all companies: %w", err)
+		return nil, apperror.Internal("failed to get all companies", err)
 	}
 	defer rows.Close()
 
@@ -88,10 +92,12 @@ func (r *repository) Update(ctx context.Context, company *Company) error {
 		"company_name": company.CompanyName,
 		"company_id":   company.CompanyID,
 	}
-	_, err := r.db.Exec(ctx, query, args)
-
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to update company: %w", err)
+		return apperror.Internal("failed to update company", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("company not found", nil)
 	}
 	return nil
 }
@@ -102,9 +108,12 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 		"company_id": id,
 	}
 
-	_, err := r.db.Exec(ctx, query, args)
+	result, err := r.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to delete company: %w", err)
+		return apperror.Internal("failed to delete company", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("company not found", nil)
 	}
 	return nil
 }

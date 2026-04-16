@@ -27,17 +27,19 @@ import {
 } from '@/components/ui/select'
 import type { Category } from '@/types/category'
 import { getAllCategories } from '@/services/categoryService'
+import { Spinner } from '@/components/ui/spinner'
+import { Search, Plus } from 'lucide-react'
 
 const columns: ColumnDef<Category>[] = [
   {
     accessorKey: 'category_name',
-    header: 'Category Name',
+    header: 'CATEGORY NAME',
     cell: ({ row }) => <span className="font-medium">{row.getValue('category_name')}</span>,
   },
   {
     accessorKey: 'parent_id',
-    header: 'Parent ID',
-    cell: ({ row }) => row.getValue('parent_id') || '-',
+    header: 'PARENT ID',
+    cell: ({ row }) => <span className="font-mono">{row.getValue('parent_id') || '—'}</span>,
   },
 ]
 
@@ -78,36 +80,53 @@ export default function ViewCategory() {
     },
   })
 
-  if (loading) return <div className="p-4">Loading categories...</div>
+  if (loading)
+    return (
+      <div className="flex items-center gap-4 justify-center h-full">
+        <Spinner className="size-12" />
+        <p>Loading...</p>
+      </div>
+    )
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
 
   return (
-    <div className="container mx-auto py-10 space-y-4">
-      <div className="flex items-center justify-end">
-        <Input
-          placeholder="Search categories..."
-          value={globalFilter ?? ''}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm"
-        />
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="border-b border-border p-4 flex items-center justify-end shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="SEARCH..."
+              value={globalFilter ?? ''}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="pl-9 w-48 font-mono text-xs uppercase"
+            />
+          </div>
+          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs">
+            <Plus className="h-4 w-4" />
+            ADD
+          </Button>
+        </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
+      {/* Table */}
+      <div className="flex-1 overflow-auto">
+        <Table className="table-industrial">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer select-none"
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <div className="flex items-center gap-2">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {{
-                        asc: ' ▲',
-                        desc: ' ▼',
+                        asc: '↑',
+                        desc: '↓',
                       }[header.column.getIsSorted() as string] ?? null}
                     </div>
                   </TableHead>
@@ -118,7 +137,7 @@ export default function ViewCategory() {
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   No categories found.
                 </TableCell>
               </TableRow>
@@ -137,23 +156,22 @@ export default function ViewCategory() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              categories.length
-            )}{' '}
-            of {categories.length} categories
-          </span>
+      {/* Footer */}
+      <div className="border-t border-border p-3 flex items-center justify-between shrink-0 text-xs text-muted-foreground font-mono">
+        <div>
+          SHOWING {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
+          {Math.min(
+            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+            categories.length,
+          )}{' '}
+          OF {categories.length}
         </div>
         <div className="flex items-center gap-2">
           <Select
             value={table.getState().pagination.pageSize.toString()}
             onValueChange={(value) => table.setPageSize(Number(value))}
           >
-            <SelectTrigger className="w-[80px]">
+            <SelectTrigger className="w-16 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -167,18 +185,20 @@ export default function ViewCategory() {
           <Button
             variant="outline"
             size="sm"
+            className="h-8 font-mono text-xs"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            PREV
           </Button>
           <Button
             variant="outline"
             size="sm"
+            className="h-8 font-mono text-xs"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            NEXT
           </Button>
         </div>
       </div>

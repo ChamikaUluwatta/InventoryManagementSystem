@@ -8,4 +8,7 @@ export interface Product {
   price: number
   category_id: number
   location_id: string
+  stock: number
 }
+
+export type CreateProductRequest = Omit<Product, 'product_id' | 'stock'>

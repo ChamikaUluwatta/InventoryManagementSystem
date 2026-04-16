@@ -2,12 +2,10 @@ package company
 
 import (
 	"context"
-	"errors"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
 )
-
-var ErrInvalidCompanyName = errors.New("invalid company name")
 
 type Service struct {
 	repo Repository
@@ -19,7 +17,7 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) CreateCompany(ctx context.Context, company *Company) error {
 	if company.CompanyName == "" {
-		return ErrInvalidCompanyName
+		return apperror.BadRequest("company name is required", nil)
 	}
 	return s.repo.Create(ctx, company)
 }
@@ -34,7 +32,7 @@ func (s *Service) GetAllCompanies(ctx context.Context) ([]Company, error) {
 
 func (s *Service) UpdateCompany(ctx context.Context, company *Company) error {
 	if company.CompanyName == "" {
-		return ErrInvalidCompanyName
+		return apperror.BadRequest("company name is required", nil)
 	}
 	return s.repo.Update(ctx, company)
 }

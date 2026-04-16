@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory"
@@ -261,14 +262,9 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) Seed(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	result, ids, err := h.service.Seed(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, apperror.Internal("seed failed", err))
 		return
 	}
 

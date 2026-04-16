@@ -1,17 +1,12 @@
-import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@/components/Layout/AppLayout'
 import ViewManageProducts from '@/components/Product/ViewManageProducts/ViewManageProducts'
 import { Button } from './components/ui/button'
-import ViewEditProduct from '@/components/Product/ViewEditProduct/ViewEditProduct'
 import ViewAddProduct from '@/components/Product/ViewAddProduct/ViewAddProduct'
 import ViewInventory from '@/components/Inventory/ViewInventory/ViewInventory'
 import ViewLocation from '@/components/Location/ViewLocation/ViewLocation'
 import ViewCategory from '@/components/Category/ViewCategory/ViewCategory'
 
-function ViewEditProductWrapper() {
-  const { productId } = useParams<{ productId: string }>()
-  return <ViewEditProduct uuid={productId || ''} />
-}
 
 function App() {
   return (
@@ -49,15 +44,7 @@ function App() {
           }
         />
         <Route
-          path="/products/:productId/edit"
-          element={
-            <AppLayout>
-              <ViewEditProductWrapper />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/products/add"
+          path="/products/new"
           element={
             <AppLayout>
               <ViewAddProduct />

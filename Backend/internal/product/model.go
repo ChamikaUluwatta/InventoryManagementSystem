@@ -16,3 +16,8 @@ type Product struct {
 	CategoryID         int             `db:"category_id"  json:"category_id"`
 	LocationID         string          `db:"location_id"  json:"location_id"`
 }
+
+type GetProductById struct {
+	Product
+	Stock int `db:"stock" json:"stock"`
+}

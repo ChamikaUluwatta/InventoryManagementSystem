@@ -26,23 +26,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Product } from '@/types/product'
-import { deleteProduct, getAllProducts } from '@/services/productService'
-import { Pencil, Trash } from 'lucide-react'
+import { getAllProducts } from '@/services/productService'
 import { Link } from 'react-router-dom'
 import type { Category } from '@/types/category'
 import { getAllCategories } from '@/services/categoryService'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-
+import { Spinner } from '@/components/ui/spinner'
+import { Plus, Search } from 'lucide-react'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
+import ProductSheetContent from '../ProductSheetContent'
 
 export default function ViewManageProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -51,6 +42,9 @@ export default function ViewManageProducts() {
   const [error, setError] = useState<string | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -71,37 +65,44 @@ export default function ViewManageProducts() {
     fetchProducts()
   }, [])
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteProduct(id)
-      setProducts((prev) => prev.filter((p) => p.product_id !== id.toString()))
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete product')
-    }
+  const handleRowClick = (product: Product) => {
+    setSelectedProduct(product)
+    setSheetOpen(true)
+  }
+
+  const handleSuccess = () => {
+    getAllProducts().then(setProducts).catch(console.error)
+  }
+
+  const handleClose = () => {
+    setSheetOpen(false)
+    setSelectedProduct(null)
   }
 
   const columns: ColumnDef<Product>[] = [
     {
       accessorKey: 'product_name',
-      header: 'Name',
+      header: 'PRODUCT',
       cell: ({ row }) => <span className="font-medium">{row.getValue('product_name')}</span>,
     },
     {
       accessorKey: 'diameter',
-      header: 'Diameter',
+      header: 'DIAMETER',
+      cell: ({ row }) => <span className="font-data">{row.getValue('diameter')}</span>,
     },
     {
       accessorKey: 'width',
-      header: 'Width',
+      header: 'WIDTH',
+      cell: ({ row }) => <span className="font-data">{row.getValue('width')}</span>,
     },
     {
       accessorKey: 'price',
-      header: 'Price',
-      cell: ({ row }) => `$${row.getValue('price')}`,
+      header: 'PRICE',
+      cell: ({ row }) => <span className="font-data">${row.getValue('price')}</span>,
     },
     {
       accessorKey: 'category_id',
-      header: 'Category',
+      header: 'CATEGORY',
       cell: ({ row }) => {
         const catId = row.getValue('category_id') as number
         const category = categories.find((c) => c.category_id === catId)
@@ -110,11 +111,8 @@ export default function ViewManageProducts() {
     },
     {
       accessorKey: 'location_id',
-      header: 'Location',
-    },
-    {
-      accessorKey: 'edit',
-      header: 'Edit',
+      header: 'LOCATION',
+      cell: ({ row }) => <span className="font-data">{row.getValue('location_id') || '-'}</span>,
     },
   ]
 
@@ -133,36 +131,53 @@ export default function ViewManageProducts() {
     },
   })
 
-  if (loading) return <div className="p-4">Loading products...</div>
+  if (loading)
+    return (
+      <div className="flex items-center gap-4 justify-center h-full">
+        <Spinner className="size-12" />
+        <p>Loading...</p>
+      </div>
+    )
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
 
   return (
-    <div className="container mx-auto py-10 space-y-4">
-      <div className="flex items-center justify-end">
-        <Input
-          placeholder="Search products..."
-          value={globalFilter ?? ''}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm"
-        />
+    <div className="h-full flex flex-col">
+      <div className="border-b border-border p-4 flex items-center justify-end shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="SEARCH..."
+              value={globalFilter ?? ''}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="pl-9 w-48 font-mono text-xs uppercase"
+            />
+          </div>
+          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs" asChild>
+            <Link to="/products/new">
+              <Plus className="h-4 w-4" />
+              ADD PRODUCT
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
+      <div className="flex-1 overflow-auto">
+        <Table className="table-industrial">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer select-none"
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <div className="flex items-center gap-2">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {{
-                        asc: ' ▲',
-                        desc: ' ▼',
+                        asc: '↑',
+                        desc: '↓',
                       }[header.column.getIsSorted() as string] ?? null}
                     </div>
                   </TableHead>
@@ -173,56 +188,22 @@ export default function ViewManageProducts() {
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   No products found.
                 </TableCell>
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) =>
-                    cell.column.id === 'edit' ? (
-                      <div>
-                        <TableCell key={cell.id}>
-                          <Link to={`/products/${row.original.product_id}/edit`}>
-                            <Button variant="outline" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </TableCell>
-                        <TableCell key={cell.id}>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant={'outline'} size={'sm'}>
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete your
-                                  product and remove your product data from the inventory.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(row.original.product_id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
-                      </div>
-                    ) : (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ),
-                  )}
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => handleRowClick(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             )}
@@ -230,24 +211,21 @@ export default function ViewManageProducts() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Showing{' '}
-            {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              products.length,
-            )}{' '}
-            of {products.length} products
-          </span>
+      <div className="border-t border-border p-3 flex items-center justify-between shrink-0 text-xs text-muted-foreground font-mono">
+        <div>
+          SHOWING {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
+          {Math.min(
+            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+            products.length,
+          )}{' '}
+          OF {products.length}
         </div>
         <div className="flex items-center gap-2">
           <Select
             value={table.getState().pagination.pageSize.toString()}
             onValueChange={(value) => table.setPageSize(Number(value))}
           >
-            <SelectTrigger className="w-20">
+            <SelectTrigger className="w-16 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -261,21 +239,37 @@ export default function ViewManageProducts() {
           <Button
             variant="outline"
             size="sm"
+            className="h-8 font-mono text-xs"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            PREV
           </Button>
           <Button
             variant="outline"
             size="sm"
+            className="h-8 font-mono text-xs"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            NEXT
           </Button>
         </div>
       </div>
+      
+      <Sheet open={sheetOpen} onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}>
+        <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
+          {selectedProduct && (
+            <ProductSheetContent
+              product={selectedProduct}
+              onClose={handleClose}
+              onSuccess={handleSuccess}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

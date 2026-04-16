@@ -2,9 +2,10 @@ package inventory
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/google/uuid"
 )
 
@@ -27,19 +28,14 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req Inventory
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 
 	if err := h.service.CreateInventory(r.Context(), &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -49,21 +45,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("id")
-	var id int
-	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		apperror.HandleError(w, apperror.BadRequest("invalid inventory id", err))
 		return
 	}
 
 	result, err := h.service.GetInventoryByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Not found", http.StatusNotFound)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -72,14 +63,9 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	results, err := h.service.GetAllInventories(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -88,27 +74,22 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("id")
-	var id int
-	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		apperror.HandleError(w, apperror.BadRequest("invalid inventory id", err))
 		return
 	}
 
 	var req Inventory
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 	req.InventoryID = id
 
 	if err := h.service.UpdateInventory(r.Context(), &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -117,20 +98,15 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("id")
-	var id int
-	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		apperror.HandleError(w, apperror.BadRequest("invalid inventory id", err))
 		return
 	}
 
 	if err := h.service.DeleteInventory(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -138,21 +114,16 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByProduct(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.PathValue("productId")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid product id", err))
 		return
 	}
 
 	results, err := h.service.GetInventoriesByProduct(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -161,20 +132,15 @@ func (h *Handler) GetByProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByLocation(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	id := r.PathValue("locationId")
 	if id == "" {
-		http.Error(w, "Invalid location ID", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
 		return
 	}
 
 	results, err := h.service.GetInventoriesByLocation(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
