@@ -12,12 +12,10 @@ import (
 
 type Repository interface {
 	Create(ctx context.Context, product *Product) error
-	GetByID(ctx context.Context, id uuid.UUID) (*Product, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*GetProductById, error)
 	GetAll(ctx context.Context, params GetProductsQueryParams) ([]Product, error)
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetByCompany(ctx context.Context, companyID uuid.UUID) ([]Product, error)
-	GetByCategory(ctx context.Context, categoryID int) ([]Product, error)
 }
 
 type repository struct {
@@ -51,13 +49,29 @@ func (r *repository) Create(ctx context.Context, product *Product) error {
 	return nil
 }
 
-func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error) {
+func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*GetProductById, error) {
 	query := `
-		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
-		FROM "products"
-		WHERE product_id = @product_id`
+		SELECT 
+			p.product_id, 
+			p.product_name, 
+			p.product_description, 
+			p.diameter, 
+			p.width, 
+			p.company_id, 
+			p.price, 
+			p.category_id, 
+			p.location_id,
+			i.stock
+		FROM 
+			"products" p
+		JOIN 
+			"inventories" i
+		ON
+			p.product_id = i.product_id
+		WHERE 
+			p.product_id = @product_id`
 
-	var product Product
+	var product GetProductById
 	err := r.db.QueryRow(ctx, query, pgx.NamedArgs{"product_id": id}).Scan(
 		&product.ProductID,
 		&product.ProductName,
@@ -68,6 +82,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error
 		&product.Price,
 		&product.CategoryID,
 		&product.LocationID,
+		&product.Stock,
 	)
 
 	if err != nil {
@@ -82,7 +97,6 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*Product, error
 func (r *repository) GetAll(ctx context.Context, params GetProductsQueryParams) ([]Product, error) {
 	query := `
 		SELECT 
-			i.stock,
 			p.product_id,
 			p.product_name, 
 			p.product_description, 
@@ -92,9 +106,7 @@ func (r *repository) GetAll(ctx context.Context, params GetProductsQueryParams) 
 			p.price, 
 			p.category_id, 
 			p.location_id
-		FROM "products" p 
-		JOIN "inventories" i 
-		on p.product_id = i.product_id 
+		FROM "products" p  
 		where 
 			(@company_id::uuid IS NULL OR p.company_id = @company_id::uuid) 
 			AND 
@@ -158,42 +170,4 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 		return apperror.NotFound("product not found", nil)
 	}
 	return nil
-}
-
-func (r *repository) GetByCompany(ctx context.Context, companyID uuid.UUID) ([]Product, error) {
-	query := `
-		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
-		FROM "products"
-		WHERE company_id = @company_id
-		ORDER BY product_name`
-
-	args := pgx.NamedArgs{
-		"company_id": companyID,
-	}
-	rows, err := r.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, apperror.Internal("failed to get products by company", err)
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToStructByName[Product])
-}
-
-func (r *repository) GetByCategory(ctx context.Context, categoryID int) ([]Product, error) {
-	query := `
-		SELECT product_id, product_name, product_description, diameter, width, company_id, price, category_id, location_id
-		FROM "products"
-		WHERE category_id = @category_id
-		ORDER BY product_name`
-
-	args := pgx.NamedArgs{
-		"category_id": categoryID,
-	}
-	rows, err := r.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, apperror.Internal("failed to get products by category", err)
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToStructByName[Product])
 }

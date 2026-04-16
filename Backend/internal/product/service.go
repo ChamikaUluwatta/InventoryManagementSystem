@@ -9,7 +9,7 @@ import (
 
 type Service interface {
 	CreateProduct(ctx context.Context, product *Product) error
-	GetProductByID(ctx context.Context, id uuid.UUID) (*Product, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (*GetProductById, error)
 	GetAllProducts(ctx context.Context, params GetProductsQueryParams) ([]Product, error)
 	UpdateProduct(ctx context.Context, product *Product) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
@@ -37,7 +37,7 @@ func (s *service) CreateProduct(ctx context.Context, product *Product) error {
 	return s.repo.Create(ctx, product)
 }
 
-func (s *service) GetProductByID(ctx context.Context, id uuid.UUID) (*Product, error) {
+func (s *service) GetProductByID(ctx context.Context, id uuid.UUID) (*GetProductById, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
