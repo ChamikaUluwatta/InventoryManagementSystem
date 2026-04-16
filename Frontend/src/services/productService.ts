@@ -24,7 +24,7 @@ export const getProductById = async (id: string): Promise<Product> => {
   return response.json()
 }
 
-export const createProduct = async (product: Omit<Product, 'product_id'>): Promise<Product> => {
+export const createProduct = async (product: Omit<Product, 'product_id' | 'stock'>): Promise<Product> => {
   const response = await fetch(`${API_BASE}/products`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

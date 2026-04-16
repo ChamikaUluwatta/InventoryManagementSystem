@@ -224,7 +224,7 @@ export default function ViewAddProduct() {
           <p className="section-header">RELATIONSHIPS</p>
           <div className="grid grid-cols-3 gap-4 mt-3">
             <div className="space-y-1">
-              <Label htmlFor="category_id" className="text-xs">CATEGORY</Label>
+              <Label htmlFor="category_id" className="text-xs">CATEGORY*</Label>
               <Select
                 value={form.watch('category_id')?.toString()}
                 onValueChange={(value) =>

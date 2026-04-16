@@ -50,6 +50,7 @@ const formSchema = z
     category_id: z.number().int().positive().optional(),
     company_id: z.string().min(1, 'Required'),
     location_id: z.string().optional(),
+    stock: z.number().int().nonnegative(),
   })
   .refine((data) => data.diameter > 0, {
     message: 'Must be positive',
@@ -86,6 +87,7 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
       category_id: undefined,
       company_id: '',
       location_id: '',
+      stock: 0,
     },
   })
 
@@ -121,6 +123,7 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
           category_id: productData.category_id,
           company_id: productData.company_id.toString(),
           location_id: productData.location_id,
+          stock: productData.stock,
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load product data')
@@ -230,16 +233,30 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
         {mode === 'view' ? (
           <>
             <div className="flex items-baseline justify-between px-4 py-3 rounded-md border border-border">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Unit Price</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                Unit Price
+              </span>
               <span className="text-2xl font-bold font-mono tabular-nums">${product.price}</span>
             </div>
-
+            <div>
+              <SectionLabel>Description</SectionLabel>
+              <div className="px-4 py-3 border border-border rounded-md">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {product.product_description ? product.product_description : '—'}
+                </p>
+              </div>
+            </div>
             <div>
               <SectionLabel>Specifications</SectionLabel>
               <div className="grid grid-cols-2 border border-border rounded-md overflow-hidden">
                 <DataCell label="DIAMETER" value={`${product.diameter} mm`} bordered />
                 <DataCell label="WIDTH" value={`${product.width} mm`} />
-                <DataCell label="CATEGORY" value={getCategoryName(product.category_id)} bordered topBorder />
+                <DataCell
+                  label="CATEGORY"
+                  value={getCategoryName(product.category_id)}
+                  bordered
+                  topBorder
+                />
                 <DataCell label="COMPANY" value={getCompanyName(product.company_id)} topBorder />
               </div>
             </div>
@@ -251,26 +268,20 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                   <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-0.5">
                     Storage Unit
                   </p>
-                  <p className="text-sm font-medium font-mono">{getLocationName(product.location_id)}</p>
-                </div>
-              </div>
-            </div>
-
-            {product.product_description && (
-              <div>
-                <SectionLabel>Description</SectionLabel>
-                <div className="px-4 py-3 border border-border rounded-md">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {product.product_description}
+                  <p className="text-sm font-medium font-mono">
+                    {getLocationName(product.location_id)}
                   </p>
                 </div>
               </div>
-            )}
+            </div>
           </>
         ) : (
+          //Edit section
           <form id="product-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <div className="flex items-baseline justify-between px-4 py-3 rounded-md border border-border">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Unit Price</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                Unit Price
+              </span>
               <Input
                 id="price"
                 type="number"
@@ -279,7 +290,24 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                 {...form.register('price', { valueAsNumber: true })}
               />
             </div>
-
+            <div>
+              <SectionLabel>Product Name</SectionLabel>
+              <Input
+                id="product_name"
+                className="h-9 text-sm font-medium"
+                {...form.register('product_name')}
+              />
+            </div>
+            <div>
+              <SectionLabel>Description</SectionLabel>
+              <div className="px-4 py-3 border border-border rounded-md">
+                <Textarea
+                  id="product_description"
+                  className="min-h-20 text-sm font-mono resize-none border-0 p-3"
+                  {...form.register('product_description')}
+                />
+              </div>
+            </div>
             <div>
               <SectionLabel>Specifications</SectionLabel>
               <div className="grid grid-cols-2 border border-border rounded-md overflow-hidden">
@@ -303,7 +331,7 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                     {...form.register('width', { valueAsNumber: true })}
                   />
                 </EditCell>
-                <EditCell topBorder>
+                <EditCell topBorder className="col-span-2">
                   <EditLabel>CATEGORY</EditLabel>
                   <Select
                     value={form.watch('category_id')?.toString()}
@@ -316,14 +344,18 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                     </SelectTrigger>
                     <SelectContent position="popper">
                       {categories.map((cat) => (
-                        <SelectItem key={cat.category_id} value={cat.category_id.toString()} className="font-mono text-sm">
+                        <SelectItem
+                          key={cat.category_id}
+                          value={cat.category_id.toString()}
+                          className="font-mono text-sm"
+                        >
                           {cat.category_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </EditCell>
-                <EditCell bordered topBorder>
+                <EditCell topBorder className="col-span-2">
                   <EditLabel>COMPANY</EditLabel>
                   <Select
                     value={form.watch('company_id')}
@@ -334,7 +366,11 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                     </SelectTrigger>
                     <SelectContent position="popper">
                       {companies.map((comp) => (
-                        <SelectItem key={comp.company_id} value={comp.company_id.toString()} className="font-mono text-sm text-wrap">
+                        <SelectItem
+                          key={comp.company_id}
+                          value={comp.company_id.toString()}
+                          className="font-mono text-sm text-wrap"
+                        >
                           {comp.company_name}
                         </SelectItem>
                       ))}
@@ -358,35 +394,34 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                     </SelectTrigger>
                     <SelectContent position="popper">
                       {locations.map((loc) => (
-                        <SelectItem key={loc.location_id} value={loc.location_id.toString()} className="font-mono text-sm">
+                        <SelectItem
+                          key={loc.location_id}
+                          value={loc.location_id.toString()}
+                          className="font-mono text-sm"
+                        >
                           {loc.location_id}
                         </SelectItem>
                       ))}
-                      <SelectItem value="unassigned" className="font-mono text-sm">Unassigned</SelectItem>
+                      <SelectItem value="unassigned" className="font-mono text-sm">
+                        Unassigned
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
-
             <div>
-              <SectionLabel>Description</SectionLabel>
-              <div className="px-4 py-3 border border-border rounded-md">
-                <Textarea
-                  id="product_description"
-                  className="min-h-20 text-sm font-mono resize-none border-0 p-0"
-                  {...form.register('product_description')}
-                />
+              <SectionLabel>Inventory</SectionLabel>
+              <div className="flex items-center gap-3 px-4 py-3 border border-border rounded-md">
+                <div className="flex-1">
+                  <DataCell
+                    className="p-4 flex justify-between"
+                    label="IN STOCK"
+                    bordered
+                    value={form.watch('stock').toString()}
+                  />
+                </div>
               </div>
-            </div>
-
-            <div>
-              <SectionLabel>Product Name</SectionLabel>
-              <Input
-                id="product_name"
-                className="h-9 text-sm font-medium"
-                {...form.register('product_name')}
-              />
             </div>
           </form>
         )}
@@ -410,14 +445,15 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete this product?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently remove <strong>{product.product_name}</strong> from the inventory. This action cannot be undone.
+                    This will permanently remove <strong>{product.product_name}</strong> from the
+                    inventory. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={()=>handleDelete(product.product_id.toString())}
+                    onClick={() => handleDelete(product.product_id.toString())}
                   >
                     Delete
                   </AlertDialogAction>
@@ -425,11 +461,7 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
               </AlertDialogContent>
             </AlertDialog>
 
-            <Button
-              size="sm"
-              className="h-8 px-4 text-xs gap-1.5"
-              onClick={() => setMode('edit')}
-            >
+            <Button size="sm" className="h-8 px-4 text-xs gap-1.5" onClick={() => setMode('edit')}>
               <Pencil className="h-3.5 w-3.5" />
               Edit Product
             </Button>
@@ -468,7 +500,6 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
   )
 }
 
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
@@ -491,11 +522,13 @@ function DataCell({
   value,
   bordered,
   topBorder,
+  className,
 }: {
   label: string
   value: string
   bordered?: boolean
   topBorder?: boolean
+  className?: string
 }) {
   return (
     <div
@@ -503,6 +536,7 @@ function DataCell({
         'px-4 py-3',
         bordered ? 'border-r border-border' : '',
         topBorder ? 'border-t border-border' : '',
+        className ? className : '',
       ].join(' ')}
     >
       <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-0.5">
@@ -517,10 +551,12 @@ function EditCell({
   children,
   bordered,
   topBorder,
+  className,
 }: {
   children: React.ReactNode
   bordered?: boolean
   topBorder?: boolean
+  className?: string
 }) {
   return (
     <div
@@ -528,6 +564,7 @@ function EditCell({
         'px-4 py-3',
         bordered ? 'border-r border-border' : '',
         topBorder ? 'border-t border-border' : '',
+        className ? className : '',
       ].join(' ')}
     >
       {children}

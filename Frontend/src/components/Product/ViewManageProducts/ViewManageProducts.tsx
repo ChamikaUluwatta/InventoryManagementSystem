@@ -142,8 +142,7 @@ export default function ViewManageProducts() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-border p-4 flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight">PRODUCTS</h1>
+      <div className="border-b border-border p-4 flex items-center justify-end shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
