@@ -44,14 +44,23 @@ migrate/down/1:
 
 # Docker
 ## docker/up: start with dockerized DB
-.PHONY: docker/up
+.PHONY: docker/up/dockerDB
 docker/up:
-	docker compose --profile dockerDB up -d
+	docker compose --profile dockerDB up
 
 ## docker/down: stop all containers
-.PHONY: docker/down
+.PHONY: docker/down/dockerDB
 docker/down:
 	docker compose --profile dockerDB down
+
+.PHONY: docker/up/localDB
+docker/up/localDB:
+	docker compose --profile localDB up
+
+.PHONY: docker/down/localDB
+docker/down/localDB:
+	docker compose --profile localDB down
+
 
 # Help
 ## help: print this help message
