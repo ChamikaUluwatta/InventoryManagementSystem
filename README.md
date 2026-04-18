@@ -1,19 +1,30 @@
 # Inventory Management System
 
+## Project Status
+
+![IMPORTANT](https://img.shields.io/badge/IMPORTANT-IN%20DEVELOPMENT-red?style=for-the-badge)
+
+
+> This project is under active development and is not production-ready.
+> Features are still being implemented, and APIs or UI behavior may change without notice.
+
 An open-source inventory management system for small-scale hardware and grocery shops.
 
 The goal of this project is to provide a simple, practical, and extensible solution for day-to-day stock management.
 
 ## Current Feature Status
 
-- [x] Product management (View, Add, Edit)
-- [] Location management (View, Add, Edit)
-- [] Inventory management (View, Add, Edit)
-- [] Category management (View, Add, Edit)
-- [] Company management (View, Add, Edit)
-- [] Role Based management (for View,Add,Edit)
-- [] Sales satistic (view)
-- [] Integrated E-Commerce site
+[✓] Implemented
+[x] Not implemented yet
+
+- [✓] Product management (View, Add, Edit)
+- [x] Location management (View, Add, Edit)
+- [x] Inventory management (View, Add, Edit)
+- [x] Category management (View, Add, Edit)
+- [x] Company management (View, Add, Edit)
+- [x] Role Based management (View, Add, Edit)
+- [x] Sales statistic (View)
+- [x] Integrated E-Commerce site
 ## Tech Stack
 
 - Backend: Go (net/http), PostgreSQL
