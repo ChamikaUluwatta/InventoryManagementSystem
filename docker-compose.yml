@@ -22,7 +22,7 @@ services:
       dockerfile: Dockerfile
     container_name: inventory-backend
     environment:
-      - DB_HOST=${DB_HOST?error}
+      - DB_HOST=${DB_HOST_DOCKER?error}
       - SERVER_PORT=${SERVER_PORT?error}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS?error}
     depends_on:
