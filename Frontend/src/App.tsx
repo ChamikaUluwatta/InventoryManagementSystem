@@ -6,6 +6,7 @@ import ViewAddProduct from '@/components/Product/ViewAddProduct/ViewAddProduct'
 import ViewInventory from '@/components/Inventory/ViewInventory/ViewInventory'
 import ViewLocation from '@/components/Location/ViewLocation/ViewLocation'
 import ViewCategory from '@/components/Category/ViewCategory/ViewCategory'
+import ViewManageCompanies from '@/components/Company/ViewManageCompanies/ViewManageCompanies'
 
 
 function App() {
@@ -72,6 +73,14 @@ function App() {
           element={
             <AppLayout>
               <ViewCategory />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/companies"
+          element={
+            <AppLayout>
+              <ViewManageCompanies />
             </AppLayout>
           }
         />

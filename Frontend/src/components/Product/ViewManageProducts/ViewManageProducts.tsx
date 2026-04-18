@@ -83,7 +83,7 @@ export default function ViewManageProducts() {
     {
       accessorKey: 'product_name',
       header: 'PRODUCT',
-      cell: ({ row }) => <span className="font-medium">{row.getValue('product_name')}</span>,
+      cell: ({ row }) => <span className="font-mono">{row.getValue('product_name')}</span>,
     },
     {
       accessorKey: 'diameter',

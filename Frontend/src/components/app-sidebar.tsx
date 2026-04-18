@@ -26,6 +26,7 @@ const data = {
         { title: 'Inventory', url: '/inventory', disabled: false },
         { title: 'Locations', url: '/locations', disabled: false },
         { title: 'Categories', url: '/categories', disabled: false },
+        { title: 'Companies', url: '/companies', disabled: false },
       ],
     }
   ],

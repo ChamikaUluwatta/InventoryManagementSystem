@@ -25,7 +25,7 @@ export const getLocationById = async (id: string): Promise<Location> => {
 }
 
 export const createLocation = async (
-  location: Omit<Location, 'location_id'>,
+  location: Location,
 ): Promise<Location> => {
   const response = await fetch(`${API_BASE}/locations`, {
     method: 'POST',
