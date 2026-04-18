@@ -1,0 +1,61 @@
+MIGRATE=migrate -path=./Backend/database/migrations -database "$(DB_URL)"
+
+include .env
+export
+
+# Development
+
+## run/backend: run the backend
+.PHONY: run/backend
+run/backend:
+	cd Backend && go run ./cmd
+
+## run/frontend: run the frontend  
+.PHONY: run/frontend
+run/frontend:
+	cd Frontend && npm run dev
+
+## run: run both backend and frontend concurrently
+.PHONY: run
+run:
+	make -j2 run/backend run/frontend
+
+# Database Migrations
+
+## migrate/up: apply all migrations
+.PHONY: migrate/up
+migrate/up:
+	$(MIGRATE) up
+
+## migrate/up/1: apply 1 migration step
+.PHONY: migrate/up/1
+migrate/up/1:
+	$(MIGRATE) up 1
+
+## migrate/down: rollback all migrations
+.PHONY: migrate/down
+migrate/down:
+	$(MIGRATE) down
+
+## migrate/down/1: rollback 1 migration step
+.PHONY: migrate/down/1
+migrate/down/1:
+	$(MIGRATE) down 1
+
+# Docker
+## docker/up: start with dockerized DB
+.PHONY: docker/up
+docker/up:
+	docker compose --profile dockerDB up -d
+
+## docker/down: stop all containers
+.PHONY: docker/down
+docker/down:
+	docker compose --profile dockerDB down
+
+# Help
+## help: print this help message
+.PHONY: help
+help:
+	@echo 'Usage:'
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
