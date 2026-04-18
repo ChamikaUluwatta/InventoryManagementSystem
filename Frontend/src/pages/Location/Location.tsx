@@ -25,48 +25,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Category } from '@/types/category'
-import { getAllCategories } from '@/services/categoryService'
+import type { Location } from '@/types/location'
+import { getAllLocations } from '@/services/locationService'
 import { Spinner } from '@/components/ui/spinner'
 import { Search, Plus } from 'lucide-react'
 
-const columns: ColumnDef<Category>[] = [
+const columns: ColumnDef<Location>[] = [
   {
-    accessorKey: 'category_name',
-    header: 'CATEGORY NAME',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('category_name')}</span>,
+    accessorKey: 'location_id',
+    header: 'LOCATION ID',
+    cell: ({ row }) => <span className="font-mono">{row.getValue('location_id')}</span>,
   },
   {
-    accessorKey: 'parent_id',
-    header: 'PARENT ID',
-    cell: ({ row }) => <span className="font-mono">{row.getValue('parent_id') || '—'}</span>,
+    accessorKey: 'image',
+    header: 'IMAGE',
+    cell: ({ row }) => <span className="font-mono">{row.getValue('image') || '—'}</span>,
   },
 ]
 
-export default function ViewCategory() {
-  const [categories, setCategories] = useState<Category[]>([])
+export default function Location() {
+  const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchLocations = async () => {
       try {
-        const data = await getAllCategories()
-        setCategories(data)
+        const data = await getAllLocations()
+        setLocations(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch categories')
+        setError(err instanceof Error ? err.message : 'Failed to fetch locations')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchCategories()
+    fetchLocations()
   }, [])
 
   const table = useReactTable({
-    data: categories,
+    data: locations,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -138,7 +138,7 @@ export default function ViewCategory() {
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No categories found.
+                  No locations found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -162,9 +162,9 @@ export default function ViewCategory() {
           SHOWING {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
           {Math.min(
             (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-            categories.length,
+            locations.length,
           )}{' '}
-          OF {categories.length}
+          OF {locations.length}
         </div>
         <div className="flex items-center gap-2">
           <Select

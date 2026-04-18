@@ -25,53 +25,99 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { InventoryView } from '@/types/inventory'
-import { getInventoryWithProductDetails } from '@/services/inventoryService'
+import type { Product } from '@/types/product'
+import { getAllProducts } from '@/services/productService'
+import { Link } from 'react-router-dom'
+import type { Category } from '@/types/category'
+import { getAllCategories } from '@/services/categoryService'
 import { Spinner } from '@/components/ui/spinner'
-import { Search, Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
+import ProductSheetContent from '@/components/Product/ProductSheetContent'
 
-const columns: ColumnDef<InventoryView>[] = [
-  {
-    accessorKey: 'product_name',
-    header: 'PRODUCT NAME',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('product_name')}</span>,
-  },
-  {
-    accessorKey: 'location_id',
-    header: 'LOCATION',
-    cell: ({ row }) => <span className="font-mono">{row.getValue('location_id')}</span>,
-  },
-  {
-    accessorKey: 'stock',
-    header: 'STOCK',
-    cell: ({ row }) => <span className="font-mono">{row.getValue('stock')}</span>,
-  },
-]
-
-export default function ViewInventory() {
-  const [inventories, setInventories] = useState<InventoryView[]>([])
+export default function ManageProducts() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
 
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
   useEffect(() => {
-    const fetchInventories = async () => {
+    const fetchProducts = async () => {
       try {
-        const data = await getInventoryWithProductDetails()
-        setInventories(data)
+        const [productData, categoriesData] = await Promise.all([
+          getAllProducts(),
+          getAllCategories(),
+        ])
+        setProducts(productData)
+        setCategories(categoriesData)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch inventories')
+        setError(err instanceof Error ? err.message : 'Failed to fetch products')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchInventories()
+    fetchProducts()
   }, [])
 
+  const handleRowClick = (product: Product) => {
+    setSelectedProduct(product)
+    setSheetOpen(true)
+  }
+
+  const handleSuccess = () => {
+    getAllProducts().then(setProducts).catch(console.error)
+  }
+
+  const handleClose = () => {
+    setSheetOpen(false)
+    setSelectedProduct(null)
+  }
+
+  const columns: ColumnDef<Product>[] = [
+    {
+      accessorKey: 'product_name',
+      header: 'PRODUCT',
+      cell: ({ row }) => <span className="font-mono">{row.getValue('product_name')}</span>,
+    },
+    {
+      accessorKey: 'diameter',
+      header: 'DIAMETER',
+      cell: ({ row }) => <span className="font-data">{row.getValue('diameter')}</span>,
+    },
+    {
+      accessorKey: 'width',
+      header: 'WIDTH',
+      cell: ({ row }) => <span className="font-data">{row.getValue('width')}</span>,
+    },
+    {
+      accessorKey: 'price',
+      header: 'PRICE',
+      cell: ({ row }) => <span className="font-data">${row.getValue('price')}</span>,
+    },
+    {
+      accessorKey: 'category_id',
+      header: 'CATEGORY',
+      cell: ({ row }) => {
+        const catId = row.getValue('category_id') as number
+        const category = categories.find((c) => c.category_id === catId)
+        return category?.category_name || '-'
+      },
+    },
+    {
+      accessorKey: 'location_id',
+      header: 'LOCATION',
+      cell: ({ row }) => <span className="font-data">{row.getValue('location_id') || '-'}</span>,
+    },
+  ]
+
   const table = useReactTable({
-    data: inventories,
+    data: products,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -96,7 +142,6 @@ export default function ViewInventory() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="border-b border-border p-4 flex items-center justify-end shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -108,14 +153,15 @@ export default function ViewInventory() {
               className="pl-9 w-48 font-mono text-xs uppercase"
             />
           </div>
-          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs">
-            <Plus className="h-4 w-4" />
-            ADD
+          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs" asChild>
+            <Link to="/products/new">
+              <Plus className="h-4 w-4" />
+              ADD PRODUCT
+            </Link>
           </Button>
         </div>
       </div>
 
-      {/* Table */}
       <div className="flex-1 overflow-auto">
         <Table className="table-industrial">
           <TableHeader>
@@ -143,12 +189,16 @@ export default function ViewInventory() {
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No inventories found.
+                  No products found.
                 </TableCell>
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => handleRowClick(row.original)}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -161,15 +211,14 @@ export default function ViewInventory() {
         </Table>
       </div>
 
-      {/* Footer */}
       <div className="border-t border-border p-3 flex items-center justify-between shrink-0 text-xs text-muted-foreground font-mono">
         <div>
           SHOWING {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
           {Math.min(
             (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-            inventories.length,
+            products.length,
           )}{' '}
-          OF {inventories.length}
+          OF {products.length}
         </div>
         <div className="flex items-center gap-2">
           <Select
@@ -207,6 +256,20 @@ export default function ViewInventory() {
           </Button>
         </div>
       </div>
+      
+      <Sheet open={sheetOpen} onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}>
+        <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
+          {selectedProduct && (
+            <ProductSheetContent
+              product={selectedProduct}
+              onClose={handleClose}
+              onSuccess={handleSuccess}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

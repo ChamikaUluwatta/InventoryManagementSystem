@@ -55,7 +55,7 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs text-destructive font-mono mt-0.5">{message}</p>
 }
 
-export default function ViewAddProduct() {
+export default function AddProduct() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState<Category[]>([])
