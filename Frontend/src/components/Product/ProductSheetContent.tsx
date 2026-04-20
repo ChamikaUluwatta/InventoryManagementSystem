@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Pencil, Trash2, X, Package } from 'lucide-react'
 import { Spinner } from '../ui/spinner'
+import { SectionLabel, EditLabel, EditCell, DataCell } from '../ui/sheet-label'
 
 type Props = {
   product: Product
@@ -268,7 +269,7 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
                   <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-0.5">
                     Storage Unit
                   </p>
-                  <p className="text-sm font-medium font-mono">
+                  <p className="text-sm  font-mono">
                     {getLocationName(product.location_id)}
                   </p>
                 </div>
@@ -500,74 +501,6 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
-      <span className="inline-block w-3 h-px bg-muted-foreground/40" />
-      {children}
-    </p>
-  )
-}
 
-function EditLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
-      {children}
-    </p>
-  )
-}
 
-function DataCell({
-  label,
-  value,
-  bordered,
-  topBorder,
-  className,
-}: {
-  label: string
-  value: string
-  bordered?: boolean
-  topBorder?: boolean
-  className?: string
-}) {
-  return (
-    <div
-      className={[
-        'px-4 py-3',
-        bordered ? 'border-r border-border' : '',
-        topBorder ? 'border-t border-border' : '',
-        className ? className : '',
-      ].join(' ')}
-    >
-      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-0.5">
-        {label}
-      </p>
-      <p className="text-sm font-medium font-mono">{value}</p>
-    </div>
-  )
-}
 
-function EditCell({
-  children,
-  bordered,
-  topBorder,
-  className,
-}: {
-  children: React.ReactNode
-  bordered?: boolean
-  topBorder?: boolean
-  className?: string
-}) {
-  return (
-    <div
-      className={[
-        'px-4 py-3',
-        bordered ? 'border-r border-border' : '',
-        topBorder ? 'border-t border-border' : '',
-        className ? className : '',
-      ].join(' ')}
-    >
-      {children}
-    </div>
-  )
-}

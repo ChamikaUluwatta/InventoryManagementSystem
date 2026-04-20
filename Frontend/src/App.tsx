@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@/components/Layout/AppLayout'
 import ManageProducts from '@/pages/Products/ManageProducts'
-import AddProduct from '@/pages/Products/AddProduct'
+
 import Category from '@/pages/Category/Category'
 import Inventory from '@/pages/Inventory/Inventory'
 import Location from '@/pages/Location/Location'
+import SupplierReturns from '@/pages/SupplierReturns/SupplierReturns'
 import { Button } from './components/ui/button'
 import Dashboard from './pages/Dashboard/Dashboard'
 
@@ -43,16 +44,9 @@ function App() {
             </AppLayout>
           }
         />
+        
         <Route
-          path="/products/new"
-          element={
-            <AppLayout>
-              <AddProduct />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/inventory"
+          path="/stock"
           element={
             <AppLayout>
               <Inventory />
@@ -82,6 +76,14 @@ function App() {
               <div className="p-4 h-full flex items-center justify-center">
                 <h1 className="text-2xl font-bold">Companies - Coming Soon</h1>
               </div>
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/returns"
+          element={
+            <AppLayout>
+              <SupplierReturns />
             </AppLayout>
           }
         />

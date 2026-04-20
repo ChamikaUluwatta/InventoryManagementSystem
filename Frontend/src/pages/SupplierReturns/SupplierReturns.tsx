@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -25,104 +25,129 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Product } from '@/types/product'
-import { getAllProducts } from '@/services/productService'
-import type { Category } from '@/types/category'
-import { getAllCategories } from '@/services/categoryService'
+import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
-import { Plus, Search } from 'lucide-react'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
-import ProductSheetContent from '@/components/Product/ProductSheetContent'
-import AddProductSheetContent from '@/components/Product/AddProductSheetContent'
+import { Search, Plus } from 'lucide-react'
+import { getAllCompanies } from '@/services/companyService'
+import { getAllSupplierReturns } from '@/services/supplierReturnService'
+import type { ReturnStatus, SupplierReturn } from '@/types/supplierReturn'
 
-export default function ManageProducts() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
+type SupplierReturnView = SupplierReturn & {
+  company_name: string
+}
+
+const statusOptions: Array<'all' | ReturnStatus> = [
+  'all',
+  'draft',
+  'approved',
+  'sent',
+  'credited',
+  'cancelled',
+  'rejected',
+  'completed',
+]
+
+const statusVariantMap: Record<ReturnStatus, 'default' | 'secondary' | 'success' | 'warning' | 'destructive' | 'outline'> = {
+  draft: 'secondary',
+  approved: 'default',
+  sent: 'warning',
+  credited: 'success',
+  cancelled: 'destructive',
+  rejected: 'destructive',
+  completed: 'success',
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '—'
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '—'
+
+  return parsed.toLocaleString()
+}
+
+function formatStatus(status: ReturnStatus) {
+  return status.replace('_', ' ').toUpperCase()
+}
+
+const columns: ColumnDef<SupplierReturnView>[] = [
+  {
+    accessorKey: 'return_no',
+    header: 'RETURN NO',
+    cell: ({ row }) => <span className="font-mono">{row.getValue('return_no')}</span>,
+  },
+  {
+    accessorKey: 'company_name',
+    header: 'COMPANY',
+    cell: ({ row }) => <span className="font-mono">{row.getValue('company_name')}</span>,
+  },
+  {
+    accessorKey: 'status',
+    header: 'STATUS',
+    cell: ({ row }) => {
+      const status = row.getValue('status') as ReturnStatus
+      return <Badge variant={statusVariantMap[status]}>{formatStatus(status)}</Badge>
+    },
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'CREATED',
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">{formatDate(row.getValue('created_at'))}</span>
+    ),
+  },
+  {
+    accessorKey: 'completed_at',
+    header: 'COMPLETED',
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">{formatDate(row.getValue('completed_at'))}</span>
+    ),
+  },
+]
+
+export default function SupplierReturns() {
+  const [returns, setReturns] = useState<SupplierReturn[]>([])
+  const [companyNameByID, setCompanyNameByID] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
-
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [addSheetOpen, setAddSheetOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<'all' | ReturnStatus>('all')
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchReturns = async () => {
       try {
-        const [productData, categoriesData] = await Promise.all([
-          getAllProducts(),
-          getAllCategories(),
+        const [returnData, companyData] = await Promise.all([
+          getAllSupplierReturns(),
+          getAllCompanies(),
         ])
-        setProducts(productData)
-        setCategories(categoriesData)
+
+        setReturns(returnData)
+        setCompanyNameByID(new Map(companyData.map((company) => [company.company_id, company.company_name])))
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch products')
+        setError(err instanceof Error ? err.message : 'Failed to fetch supplier returns and companies')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchProducts()
+    fetchReturns()
   }, [])
 
-  const handleRowClick = (product: Product) => {
-    setSelectedProduct(product)
-    setSheetOpen(true)
-  }
+  const filteredReturns = useMemo(() => {
+    if (statusFilter === 'all') return returns
+    return returns.filter((item) => item.status === statusFilter)
+  }, [returns, statusFilter])
 
-  const handleAddSuccess = () => {
-    getAllProducts().then(setProducts).catch(console.error)
-  }
-
-  const handleSuccess = () => {
-    getAllProducts().then(setProducts).catch(console.error)
-  }
-
-  const handleClose = () => {
-    setSheetOpen(false)
-    setSelectedProduct(null)
-  }
-
-  const columns: ColumnDef<Product>[] = [
-    {
-      accessorKey: 'product_name',
-      header: 'PRODUCT',
-      cell: ({ row }) => <span className="font-mono">{row.getValue('product_name')}</span>,
-    },
-    {
-      accessorKey: 'diameter',
-      header: 'DIAMETER',
-      cell: ({ row }) => <span className="font-data">{row.getValue('diameter')}</span>,
-    },
-    {
-      accessorKey: 'width',
-      header: 'WIDTH',
-      cell: ({ row }) => <span className="font-data">{row.getValue('width')}</span>,
-    },
-    {
-      accessorKey: 'price',
-      header: 'PRICE',
-      cell: ({ row }) => <span className="font-data">${row.getValue('price')}</span>,
-    },
-    {
-      accessorKey: 'category_id',
-      header: 'CATEGORY',
-      cell: ({ row }) => {
-        const catId = row.getValue('category_id') as number
-        const category = categories.find((c) => c.category_id === catId)
-        return category?.category_name || '-'
-      },
-    },
-    {
-      accessorKey: 'location_id',
-      header: 'LOCATION',
-      cell: ({ row }) => <span className="font-data">{row.getValue('location_id') || '-'}</span>,
-    },
-  ]
+  const tableData = useMemo<SupplierReturnView[]>(() => {
+    return filteredReturns.map((item) => ({
+      ...item,
+      company_name: companyNameByID.get(item.company_id) ?? 'Unknown Company',
+    }))
+  }, [filteredReturns, companyNameByID])
 
   const table = useReactTable({
-    data: products,
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -143,7 +168,14 @@ export default function ManageProducts() {
         <p>Loading...</p>
       </div>
     )
+
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
+
+  const pageIndex = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+  const totalRows = table.getFilteredRowModel().rows.length
+  const startRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1
+  const endRow = totalRows === 0 ? 0 : Math.min((pageIndex + 1) * pageSize, totalRows)
 
   return (
     <div className="h-full flex flex-col">
@@ -158,9 +190,23 @@ export default function ManageProducts() {
               className="pl-9 w-48 font-mono text-xs uppercase"
             />
           </div>
-          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs" onClick={() => setAddSheetOpen(true)}>
+
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | ReturnStatus)}>
+            <SelectTrigger className="w-40 h-9 font-mono text-xs">
+              <SelectValue placeholder="FILTER STATUS" />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === 'all' ? 'ALL STATUSES' : formatStatus(status)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs" disabled>
             <Plus className="h-4 w-4" />
-            ADD PRODUCT
+            NEW RETURN
           </Button>
         </div>
       </div>
@@ -192,20 +238,14 @@ export default function ManageProducts() {
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No products found.
+                  No supplier returns found.
                 </TableCell>
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="cursor-pointer"
-                  onClick={() => handleRowClick(row.original)}
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
@@ -216,12 +256,7 @@ export default function ManageProducts() {
 
       <div className="border-t border-border p-3 flex items-center justify-between shrink-0 text-xs text-muted-foreground font-mono">
         <div>
-          SHOWING {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
-          {Math.min(
-            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-            products.length,
-          )}{' '}
-          OF {products.length}
+          SHOWING {startRow}-{endRow} OF {totalRows}
         </div>
         <div className="flex items-center gap-2">
           <Select
@@ -259,31 +294,6 @@ export default function ManageProducts() {
           </Button>
         </div>
       </div>
-      
-      <Sheet open={sheetOpen} onOpenChange={(open) => {
-        if (!open) handleClose()
-      }}>
-        <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
-          {selectedProduct && (
-            <ProductSheetContent
-              product={selectedProduct}
-              onClose={handleClose}
-              onSuccess={handleSuccess}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
-
-      <Sheet open={addSheetOpen} onOpenChange={(open) => {
-        if (!open) setAddSheetOpen(false)
-      }}>
-        <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
-          <AddProductSheetContent
-            onClose={() => setAddSheetOpen(false)}
-            onSuccess={handleAddSuccess}
-          />
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

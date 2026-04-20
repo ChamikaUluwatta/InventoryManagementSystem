@@ -8,7 +8,8 @@ import {
   PackageCheck,
   Boxes,
   Building2,
-  FolderTree
+  FolderTree,
+  RotateCcw
 } from 'lucide-react'
 import {
   Card,
@@ -58,7 +59,7 @@ const modules = [
     title: 'Inventory',
     description: 'Track stock levels',
     icon: Boxes,
-    href: '/inventory',
+    href: '/stock',
   },
   {
     title: 'Locations',
@@ -77,6 +78,12 @@ const modules = [
     description: 'Supplier management',
     icon: Building2,
     href: '/companies',
+  },
+  {
+    title: 'Returns',
+    description: 'Track returns to suppliers',
+    icon: RotateCcw,
+    href: '/returns',
   },
 ]
 
@@ -136,7 +143,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard (Mocked)</h1>
         <p className="text-muted-foreground">Overview of your inventory operations</p>
       </div>
 
@@ -158,7 +165,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         {modules.map((module) => (
           <Card key={module.title} className="hover:bg-muted/50 transition-colors">
             <Link to={module.href}>
