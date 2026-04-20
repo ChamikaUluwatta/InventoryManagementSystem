@@ -1,4 +1,4 @@
-MIGRATE=migrate -path=./Backend/database/migrations -database "$(DB_URL)"
+MIGRATE=migrate -path=./Backend/internal/database/migrations -database "$(DB_URL)"
 
 include .env
 export
