@@ -16,9 +16,6 @@ func NewService(repo Repository) *Service {
 }
 
 func (s *Service) CreateInventory(ctx context.Context, inventory *Inventory) error {
-	if inventory.Stock < 0 {
-		return apperror.BadRequest("stock cannot be negative", nil)
-	}
 	return s.repo.Create(ctx, inventory)
 }
 

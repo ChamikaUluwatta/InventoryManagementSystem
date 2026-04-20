@@ -20,10 +20,6 @@ type service struct {
 }
 
 func NewService(repo Repository) *service {
-	return newService(repo)
-}
-
-func newService(repo Repository) *service {
 	return &service{repo: repo}
 }
 
