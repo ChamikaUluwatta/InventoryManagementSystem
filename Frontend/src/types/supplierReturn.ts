@@ -19,3 +19,16 @@ export interface SupplierReturn {
   completed_at?: string | null
 }
 
+export interface SupplierReturnCreateRequest {
+  company_id: string
+  return_no: string
+  reason?: string | null
+  notes?: string | null
+  items: SupplierReturnItem[]
+}
+
+export interface SupplierReturnItem {
+  product_id: string
+  quantity: number
+  unit_cost: number
+}

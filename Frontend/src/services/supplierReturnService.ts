@@ -1,4 +1,4 @@
-import type { ReturnStatus, SupplierReturn } from '@/types/supplierReturn'
+import type { ReturnStatus, SupplierReturn, SupplierReturnItem } from '@/types/supplierReturn'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
 
@@ -16,8 +16,16 @@ export const getAllSupplierReturns = async (): Promise<SupplierReturn[]> => {
   return response.json()
 }
 
+export interface CreateSupplierReturnRequest {
+  company_id: string
+  return_no: string
+  reason?: string | null
+  notes?: string | null
+  items: SupplierReturnItem[]
+}
+
 export const createSupplierReturn = async (
-  data: Omit<SupplierReturn, 'supplier_return_id' | 'created_at' | 'approved_at' | 'completed_at'>,
+  data: CreateSupplierReturnRequest,
 ): Promise<SupplierReturn> => {
   const response = await fetch(`${API_BASE}/supplier-returns`, {
     method: 'POST',

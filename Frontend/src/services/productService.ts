@@ -56,3 +56,11 @@ export const deleteProduct = async (id: string): Promise<void> => {
     throw new Error('Failed to delete product')
   }
 }
+
+export const getProductsByCompany = async (companyId: string): Promise<Product[]> => {
+  const response = await fetch(`${API_BASE}/products?company=${encodeURIComponent(companyId)}`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch products')
+  }
+  return response.json()
+}
