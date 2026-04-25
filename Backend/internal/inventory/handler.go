@@ -34,6 +34,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Stock < 0 {
+		apperror.HandleError(w, apperror.BadRequest("stock cannot be negative", nil))
+		return
+	}
+
 	if err := h.service.CreateInventory(r.Context(), &req); err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -74,27 +79,27 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		apperror.HandleError(w, apperror.BadRequest("invalid inventory id", err))
-		return
-	}
+	// idStr := r.PathValue("id")
+	// id, err := strconv.Atoi(idStr)
+	// if err != nil {
+	// 	apperror.HandleError(w, apperror.BadRequest("invalid inventory id", err))
+	// 	return
+	// }
 
-	var req Inventory
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
-		return
-	}
-	req.InventoryID = id
+	// var req Inventory
+	// if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// 	apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
+	// 	return
+	// }
+	// // req.InventoryID = id
 
-	if err := h.service.UpdateInventory(r.Context(), &req); err != nil {
-		apperror.HandleError(w, err)
-		return
-	}
+	// if err := h.service.UpdateInventory(r.Context(), &req); err != nil {
+	// 	apperror.HandleError(w, err)
+	// 	return
+	// }
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(req)
+	// w.Header().Set("Content-Type", "application/json")
+	// json.NewEncoder(w).Encode(req)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {

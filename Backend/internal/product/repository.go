@@ -51,25 +51,21 @@ func (r *repository) Create(ctx context.Context, product *Product) error {
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*GetProductById, error) {
 	query := `
-		SELECT 
-			p.product_id, 
-			p.product_name, 
-			p.product_description, 
-			p.diameter, 
-			p.width, 
-			p.company_id, 
-			p.price, 
-			p.category_id, 
+		SELECT
+			p.product_id,
+			p.product_name,
+			p.product_description,
+			p.diameter,
+			p.width,
+			p.company_id,
+			p.price,
+			p.category_id,
 			p.location_id,
-			i.stock
-		FROM 
-			"products" p
-		JOIN 
-			"inventories" i
-		ON
-			p.product_id = i.product_id
-		WHERE 
-			p.product_id = @product_id`
+		COALESCE(SUM(i.stock), 0) AS stock
+		FROM "products" p
+		LEFT JOIN "inventories" i USING (product_id)
+		WHERE p.product_id = @product_id
+		GROUP BY p.product_id;`
 
 	var product GetProductById
 	err := r.db.QueryRow(ctx, query, pgx.NamedArgs{"product_id": id}).Scan(
