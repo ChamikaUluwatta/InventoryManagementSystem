@@ -1,0 +1,120 @@
+package repository
+
+import (
+	"context"
+	"errors"
+
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/model"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type Repository interface {
+	Create(ctx context.Context, company *model.Company) error
+	GetByID(ctx context.Context, id uuid.UUID) (*model.Company, error)
+	GetAll(ctx context.Context) ([]model.Company, error)
+	Update(ctx context.Context, company *model.Company) error
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type repository struct {
+	db *pgxpool.Pool
+}
+
+func NewRepository(db *pgxpool.Pool) Repository {
+	return &repository{db: db}
+}
+
+func (r *repository) Create(ctx context.Context, company *model.Company) error {
+	query := `
+		INSERT INTO "companies" (company_name)
+		VALUES (@company_name)
+		RETURNING company_id`
+
+	args := pgx.NamedArgs{
+		"company_name": company.CompanyName,
+	}
+	err := r.db.QueryRow(ctx, query, args).Scan(&company.CompanyID)
+
+	if err != nil {
+		return apperror.Internal("failed to create company", err)
+	}
+	return nil
+}
+
+func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company, error) {
+	query := `
+		SELECT company_id, company_name
+		FROM "companies"
+		WHERE company_id = @company_id`
+
+	args := pgx.NamedArgs{
+		"company_id": id,
+	}
+	var company model.Company
+	err := r.db.QueryRow(ctx, query, args).Scan(
+		&company.CompanyID,
+		&company.CompanyName,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperror.NotFound("company not found", err)
+		}
+		return nil, apperror.Internal("failed to get company by id", err)
+	}
+	return &company, nil
+}
+
+func (r *repository) GetAll(ctx context.Context) ([]model.Company, error) {
+	query := `
+		SELECT company_id, company_name
+		FROM "companies"
+		ORDER BY company_name`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, apperror.Internal("failed to get all companies", err)
+	}
+	defer rows.Close()
+
+	return pgx.CollectRows(rows, pgx.RowToStructByName[model.Company])
+}
+
+func (r *repository) Update(ctx context.Context, company *model.Company) error {
+	query := `
+		UPDATE "companies"
+		SET company_name = @company_name
+		WHERE company_id = @company_id`
+
+	args := pgx.NamedArgs{
+		"company_name": company.CompanyName,
+		"company_id":   company.CompanyID,
+	}
+	result, err := r.db.Exec(ctx, query, args)
+	if err != nil {
+		return apperror.Internal("failed to update company", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("company not found", nil)
+	}
+	return nil
+}
+
+func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM "companies" WHERE company_id = @company_id`
+	args := pgx.NamedArgs{
+		"company_id": id,
+	}
+
+	result, err := r.db.Exec(ctx, query, args)
+	if err != nil {
+		return apperror.Internal("failed to delete company", err)
+	}
+	if result.RowsAffected() == 0 {
+		return apperror.NotFound("company not found", nil)
+	}
+	return nil
+}
