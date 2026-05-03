@@ -11,10 +11,10 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, product *Product) error
-	GetByID(ctx context.Context, id uuid.UUID) (*GetProductById, error)
-	GetAll(ctx context.Context, params GetProductsQueryParams) ([]Product, error)
-	Update(ctx context.Context, product *Product) error
+	Create(ctx context.Context, product *model.CreateProductRequest) (model.Product, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
+	GetAll(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
+	Update(ctx context.Context, product *model.Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -26,7 +26,8 @@ func NewRepository(db *pgxpool.Pool) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, product *Product) error {
+func (r *repository) Create(ctx context.Context, product *model.CreateProductRequest) (model.Product, error) {
+	var product_id uuid.UUID
 	query := `
 		INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id)
 		VALUES (@product_name, @product_description, @diameter, @width, @company_id, @price, @category_id, @location_id)
@@ -41,12 +42,12 @@ func (r *repository) Create(ctx context.Context, product *Product) error {
 		"category_id":         product.CategoryID,
 		"location_id":         product.LocationID,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(&product.ProductID)
+	err := r.db.QueryRow(ctx, query, args).Scan(&product_id)
 
 	if err != nil {
-		return apperror.Internal("failed to create product", err)
+		return model.Product{}, apperror.Internal("failed to create product", err)
 	}
-	return nil
+	return model.Product{ProductID: product_id}, nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*GetProductById, error) {

@@ -17,7 +17,26 @@ type Product struct {
 	LocationID         string          `db:"location_id"  json:"location_id"`
 }
 
+type CreateProductRequest struct {
+	ProductName        string          `json:"product_name"`
+	ProductDescription string          `json:"product_description"`
+	Diameter           decimal.Decimal `json:"diameter"`
+	Width              decimal.Decimal `json:"width"`
+	CompanyID          uuid.UUID       `json:"company_id"`
+	Price              decimal.Decimal `json:"price"`
+	CategoryID         int             `json:"category_id"`
+	LocationID         string          `json:"location_id"`
+}
+
 type GetProductById struct {
 	Product
 	Stock int `db:"stock" json:"stock"`
 }
+<<<<<<< Updated upstream:Backend/internal/product/model.go
+=======
+
+type GetProductsQueryParams struct {
+	CategoryID *int
+	CompanyID  *uuid.UUID
+}
+>>>>>>> Stashed changes:Backend/internal/product/model/product.go

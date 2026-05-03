@@ -181,7 +181,11 @@ func (s *Service) seedProducts(ctx context.Context, companyIDs []uuid.UUID, cate
 		return nil, nil
 	}
 
+<<<<<<< Updated upstream
 	products := []product.Product{
+=======
+	products := []productModel.CreateProductRequest{
+>>>>>>> Stashed changes
 		{
 			ProductName: "Widget A",
 			Diameter:    decimal.NewFromFloat(10.5),
@@ -210,10 +214,10 @@ func (s *Service) seedProducts(ctx context.Context, companyIDs []uuid.UUID, cate
 
 	var created []product.Product
 	for i := range products {
-		if err := s.productRepo.Create(ctx, &products[i]); err != nil {
+		if product, err := s.productRepo.Create(ctx, &products[i]); err != nil {
 			log.Printf("Failed to create product: %v", err)
 		} else {
-			created = append(created, products[i])
+			created = append(created, product)
 		}
 	}
 	return created, nil
