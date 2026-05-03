@@ -8,31 +8,36 @@ import (
 	"net/http"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category/model"
+	categoryRepo "github.com/ChamikaUluwatta/Inventory_Management_System/internal/category/repository"
+	companyModel "github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/model"
+	companyRepo "github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/repository"
+	inventoryModel "github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/model"
+	inventoryRepo "github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/repository"
+	locationModel "github.com/ChamikaUluwatta/Inventory_Management_System/internal/location/model"
+	locationRepo "github.com/ChamikaUluwatta/Inventory_Management_System/internal/location/repository"
+	productModel "github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/model"
+	productRepo "github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
 
 type Service struct {
-	companyRepo   company.Repository
-	categoryRepo  category.Repository
-	locationRepo  location.Repository
-	productRepo   product.Repository
-	inventoryRepo inventory.Repository
+	companyRepo   companyRepo.Repository
+	categoryRepo  categoryRepo.Repository
+	locationRepo  locationRepo.Repository
+	productRepo   productRepo.Repository
+	inventoryRepo inventoryRepo.Repository
 	db            *pgxpool.Pool
 }
 
 func NewService(
-	companyRepo company.Repository,
-	categoryRepo category.Repository,
-	locationRepo location.Repository,
-	productRepo product.Repository,
-	inventoryRepo inventory.Repository,
+	companyRepo companyRepo.Repository,
+	categoryRepo categoryRepo.Repository,
+	locationRepo locationRepo.Repository,
+	productRepo productRepo.Repository,
+	inventoryRepo inventoryRepo.Repository,
 	db *pgxpool.Pool,
 ) *Service {
 	return &Service{
@@ -122,14 +127,14 @@ func (s *Service) clearTables(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) seedCompanies(ctx context.Context) ([]company.Company, error) {
-	companies := []company.Company{
+func (s *Service) seedCompanies(ctx context.Context) ([]companyModel.Company, error) {
+	companies := []companyModel.Company{
 		{CompanyName: "Acme Corp"},
 		{CompanyName: "Tech Solutions"},
 		{CompanyName: "Global Industries"},
 	}
 
-	var created []company.Company
+	var created []companyModel.Company
 	for i := range companies {
 		if err := s.companyRepo.Create(ctx, &companies[i]); err != nil {
 			log.Printf("Failed to create company: %v", err)
@@ -140,14 +145,14 @@ func (s *Service) seedCompanies(ctx context.Context) ([]company.Company, error) 
 	return created, nil
 }
 
-func (s *Service) seedCategories(ctx context.Context) ([]category.Category, error) {
-	categories := []category.Category{
+func (s *Service) seedCategories(ctx context.Context) ([]model.Category, error) {
+	categories := []model.Category{
 		{CategoryName: "Electronics"},
 		{CategoryName: "Hardware"},
 		{CategoryName: "Tools"},
 	}
 
-	var created []category.Category
+	var created []model.Category
 	for i := range categories {
 		if err := s.categoryRepo.Create(ctx, &categories[i]); err != nil {
 			log.Printf("Failed to create category: %v", err)
@@ -158,14 +163,14 @@ func (s *Service) seedCategories(ctx context.Context) ([]category.Category, erro
 	return created, nil
 }
 
-func (s *Service) seedLocations(ctx context.Context) ([]location.Location, error) {
-	locations := []location.Location{
+func (s *Service) seedLocations(ctx context.Context) ([]locationModel.Location, error) {
+	locations := []locationModel.Location{
 		{LocationID: "LOC-001", Image: nil},
 		{LocationID: "LOC-002", Image: nil},
 		{LocationID: "WAREHOUSE-A", Image: nil},
 	}
 
-	var created []location.Location
+	var created []locationModel.Location
 	for i := range locations {
 		if err := s.locationRepo.Create(ctx, &locations[i]); err != nil {
 			log.Printf("Failed to create location: %v", err)
@@ -176,16 +181,12 @@ func (s *Service) seedLocations(ctx context.Context) ([]location.Location, error
 	return created, nil
 }
 
-func (s *Service) seedProducts(ctx context.Context, companyIDs []uuid.UUID, categoryIDs []int) ([]product.Product, error) {
+func (s *Service) seedProducts(ctx context.Context, companyIDs []uuid.UUID, categoryIDs []int) ([]productModel.Product, error) {
 	if len(companyIDs) < 1 || len(categoryIDs) < 1 {
 		return nil, nil
 	}
 
-<<<<<<< Updated upstream
-	products := []product.Product{
-=======
-	products := []productModel.CreateProductRequest{
->>>>>>> Stashed changes
+	products := []productModel.Product{
 		{
 			ProductName: "Widget A",
 			Diameter:    decimal.NewFromFloat(10.5),
@@ -212,7 +213,7 @@ func (s *Service) seedProducts(ctx context.Context, companyIDs []uuid.UUID, cate
 		},
 	}
 
-	var created []product.Product
+	var created []productModel.Product
 	for i := range products {
 		if product, err := s.productRepo.Create(ctx, &products[i]); err != nil {
 			log.Printf("Failed to create product: %v", err)
@@ -223,12 +224,12 @@ func (s *Service) seedProducts(ctx context.Context, companyIDs []uuid.UUID, cate
 	return created, nil
 }
 
-func (s *Service) seedInventories(ctx context.Context, productIDs []uuid.UUID, locationIDs []string) ([]inventory.Inventory, error) {
+func (s *Service) seedInventories(ctx context.Context, productIDs []uuid.UUID, locationIDs []string) ([]inventoryModel.Inventory, error) {
 	if len(productIDs) < 1 || len(locationIDs) < 1 {
 		return nil, nil
 	}
 
-	inventories := []inventory.Inventory{
+	inventories := []inventoryModel.Inventory{
 		{
 			ProductID:  productIDs[0],
 			LocationID: locationIDs[0],
@@ -246,7 +247,7 @@ func (s *Service) seedInventories(ctx context.Context, productIDs []uuid.UUID, l
 		},
 	}
 
-	var created []inventory.Inventory
+	var created []inventoryModel.Inventory
 	for i := range inventories {
 		if err := s.inventoryRepo.Create(ctx, &inventories[i]); err != nil {
 			log.Printf("Failed to create inventory: %v", err)
