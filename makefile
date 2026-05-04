@@ -42,6 +42,11 @@ migrate/down:
 migrate/down/1:
 	$(MIGRATE) down 1
 
+## migrate/create: create a new migration file
+.PHONY: migrate/create
+migrate/create:
+	migrate create -ext sql -seq -dir ./Backend/internal/database/migrations $(name)
+
 # Docker
 ## docker/up: start with dockerized DB
 .PHONY: docker/up/dockerDB
