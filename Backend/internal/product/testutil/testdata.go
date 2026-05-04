@@ -6,8 +6,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var (
-	CreateProductRequestMock = model.CreateProductRequest{
+func CreateProductRequestMock() model.CreateProductRequest {
+	return model.CreateProductRequest{
 		ProductName:        "Test Product",
 		ProductDescription: "This is a test product",
 		Diameter:           decimal.NewFromFloat(10.0),
@@ -17,8 +17,10 @@ var (
 		CategoryID:         1,
 		LocationID:         "A1",
 	}
+}
 
-	ProductMock = model.Product{
+func ProductMock() model.Product {
+	return model.Product{
 		ProductID:          uuid.New(),
 		ProductName:        "Test Product",
 		ProductDescription: "This is a test product",
@@ -29,9 +31,11 @@ var (
 		CategoryID:         1,
 		LocationID:         "A1",
 	}
+}
 
-	GetProductByIdMock = model.GetProductById{
-		Product: ProductMock,
+func GetProductByIdMock() model.GetProductById {
+	return model.GetProductById{
+		Product: ProductMock(),
 		Stock:   100,
 	}
-)
+}
