@@ -1,7 +1,10 @@
 MIGRATE=migrate -path=./Backend/internal/database/migrations -database "$(DB_URL)"
 
-include .env
-export
+ifneq ($(wildcard .env),)
+	DB_URL ?= $(strip $(shell grep -E '^DB_HOST=' .env 2>/dev/null | head -n1 | sed 's/^DB_HOST=//'))
+endif
+
+export DB_URL
 
 # Development
 
