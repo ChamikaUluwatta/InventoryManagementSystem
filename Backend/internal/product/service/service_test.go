@@ -58,7 +58,7 @@ func TestCreateProduct(t *testing.T) {
 	service := service.NewService(mock)
 
 	t.Run("Validate Invalid Product Name", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock
+		invalidProduct := testutil.CreateProductRequestMock()
 		invalidProduct.ProductName = ""
 		_, err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
@@ -71,7 +71,7 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Negative Price", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock
+		invalidProduct := testutil.CreateProductRequestMock()
 		invalidProduct.Price = invalidProduct.Price.Neg()
 		_, err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
@@ -83,7 +83,7 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Invalid Diameter and Width", func(t *testing.T) {
-		invalidProductDiameter := testutil.CreateProductRequestMock
+		invalidProductDiameter := testutil.CreateProductRequestMock()
 		invalidProductDiameter.Diameter = invalidProductDiameter.Diameter.Neg()
 		invalidProductDiameter.Width = invalidProductDiameter.Width.Neg()
 		_, err := service.CreateProduct(t.Context(), &invalidProductDiameter)
@@ -95,7 +95,7 @@ func TestCreateProduct(t *testing.T) {
 			t.Errorf("Expected error message 'diameter cannot be negative' but got '%s'", err.Error())
 		}
 
-		invalidProductWidth := testutil.CreateProductRequestMock
+		invalidProductWidth := testutil.CreateProductRequestMock()
 		invalidProductWidth.Width = invalidProductWidth.Width.Neg()
 		_, err = service.CreateProduct(t.Context(), &invalidProductWidth)
 		if err == nil {
@@ -108,7 +108,7 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Invalid Company ID", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock
+		invalidProduct := testutil.CreateProductRequestMock()
 		invalidProduct.CompanyID = uuid.Nil
 		_, err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
@@ -120,7 +120,7 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Invalid Category ID", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock
+		invalidProduct := testutil.CreateProductRequestMock()
 		invalidProduct.CategoryID = 0
 		_, err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
@@ -136,9 +136,10 @@ func TestGetProductByID(t *testing.T) {
 	productID := uuid.New()
 
 	t.Run("success", func(t *testing.T) {
+		productMock := testutil.GetProductByIdMock()
 		mock := &mockRepo{
 			getById: func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error) {
-				return &testutil.GetProductByIdMock, nil
+				return &productMock, nil
 			},
 		}
 		svc := service.NewService(mock)
@@ -146,8 +147,8 @@ func TestGetProductByID(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		if got.ProductID != testutil.GetProductByIdMock.ProductID {
-			t.Errorf("Expected product ID %v, got %v", testutil.GetProductByIdMock.ProductID, got.ProductID)
+		if got.ProductID != productMock.ProductID {
+			t.Errorf("Expected product ID %v, got %v", productMock.ProductID, got.ProductID)
 		}
 	})
 
@@ -190,7 +191,7 @@ func TestGetAllProducts(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		mock := &mockRepo{
 			getAll: func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error) {
-				return []model.Product{testutil.ProductMock}, nil
+				return []model.Product{testutil.ProductMock()}, nil
 			},
 		}
 		svc := service.NewService(mock)
@@ -234,7 +235,8 @@ func TestUpdateProduct(t *testing.T) {
 			},
 		}
 		svc := service.NewService(mock)
-		err := svc.UpdateProduct(t.Context(), &testutil.ProductMock)
+		p := testutil.ProductMock()
+		err := svc.UpdateProduct(t.Context(), &p)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
@@ -247,7 +249,7 @@ func TestUpdateProduct(t *testing.T) {
 			},
 		}
 		svc := service.NewService(mock)
-		invalidProduct := testutil.ProductMock
+		invalidProduct := testutil.ProductMock()
 		invalidProduct.ProductName = ""
 		err := svc.UpdateProduct(t.Context(), &invalidProduct)
 		if err == nil {
@@ -265,7 +267,7 @@ func TestUpdateProduct(t *testing.T) {
 			},
 		}
 		svc := service.NewService(mock)
-		invalidProduct := testutil.ProductMock
+		invalidProduct := testutil.ProductMock()
 		invalidProduct.Price = invalidProduct.Price.Neg()
 		err := svc.UpdateProduct(t.Context(), &invalidProduct)
 		if err == nil {
