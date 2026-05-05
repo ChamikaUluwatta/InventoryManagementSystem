@@ -63,10 +63,10 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.GetProdu
 			p.price, 
 			p.category_id, 
 			p.location_id,
-			i.stock
+			COALESCE(i.stock, 0)
 		FROM 
 			"products" p
-		JOIN 
+		LEFT JOIN 
 			"inventories" i
 		ON
 			p.product_id = i.product_id
@@ -134,8 +134,17 @@ func (r *repository) GetAll(ctx context.Context, params model.GetProductsQueryPa
 func (r *repository) Update(ctx context.Context, product *model.Product) error {
 	query := `
 		UPDATE "products"
-		SET product_name = @product_name, product_description = @product_description, diameter = @diameter, width = @width, company_id = @company_id, price = @price, category_id = @category_id, location_id = @location_id
-		WHERE product_id = @product_id`
+		SET 
+			product_name = @product_name, 
+			product_description = @product_description, 
+			diameter = @diameter, 
+			width = @width, 
+			company_id = @company_id, 
+			price = @price, 
+			category_id = @category_id, 
+			location_id = @location_id
+		WHERE 
+			product_id = @product_id`
 
 	args := pgx.NamedArgs{
 		"product_id":          product.ProductID,
