@@ -1,3 +1,4 @@
+BEGIN;
 ALTER TABLE "products" DROP CONSTRAINT IF EXISTS "fk_products_location";
 
 -- add unassigned to make sure unassigned exist in location table --
@@ -8,3 +9,5 @@ UPDATE "products" SET "location_id" = 'unassigned' WHERE "location_id" IS NULL o
 
 --add the foreign key constraint to products table --
 ALTER TABLE "products" ADD CONSTRAINT "fk_location" FOREIGN KEY ("location_id") REFERENCES "locations"("location_id") ON DELETE SET DEFAULT;
+
+COMMIT;
