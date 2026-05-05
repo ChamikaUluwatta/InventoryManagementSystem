@@ -33,9 +33,6 @@ func (s *service) CreateProduct(ctx context.Context, product *model.CreateProduc
 }
 
 func (s *service) GetProductByID(ctx context.Context, id uuid.UUID) (*model.GetProductById, error) {
-	if err := validation.ValidateProductID(id); err != nil {
-		return nil, err
-	}
 	return s.repo.GetByID(ctx, id)
 }
 

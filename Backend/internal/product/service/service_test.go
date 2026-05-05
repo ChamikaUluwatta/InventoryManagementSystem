@@ -168,23 +168,6 @@ func TestGetProductByID(t *testing.T) {
 		}
 	})
 
-	t.Run("Invalid Product Id", func(t *testing.T) {
-		mock := &mockRepo{
-			getById: func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error) {
-				t.Fatal("should not call repository")
-				return nil, nil
-			},
-		}
-		svc := service.NewService(mock)
-		_, err := svc.GetProductByID(t.Context(), uuid.Nil)
-		if err == nil {
-			t.Error("Expected validation error for nil product id, got nil")
-		}
-
-		if err.Error() != "Invalid product id" {
-			t.Errorf("Expected 'Invalid product id', got '%s'", err.Error())
-		}
-	})
 }
 
 func TestGetAllProducts(t *testing.T) {

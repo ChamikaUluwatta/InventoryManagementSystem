@@ -48,6 +48,13 @@ func ValidateProductID(productID uuid.UUID) error {
 	return nil
 }
 
+func ValidateLocationID(locationID string) error {
+	if locationID == "" {
+		return apperror.BadRequest("Invalid location id", nil)
+	}
+	return nil
+}
+
 func ValidateCategoryID(categoryID int) error {
 	if categoryID <= 0 {
 		return apperror.BadRequest("Invalid category id", nil)
@@ -71,7 +78,9 @@ func ValidateCreateProduct(req *model.CreateProductRequest) error {
 	if err := ValidateCategoryID(req.CategoryID); err != nil {
 		return err
 	}
-
+	if err := ValidateLocationID(req.LocationID); err != nil {
+		return err
+	}
 	if err := ValidateDiameterAndWidth(req.Diameter, req.Width); err != nil {
 		return err
 	}
@@ -97,7 +106,9 @@ func ValidateUpdateProduct(req *model.Product) error {
 	if err := ValidateCategoryID(req.CategoryID); err != nil {
 		return err
 	}
-
+	if err := ValidateLocationID(req.LocationID); err != nil {
+		return err
+	}
 	if err := ValidateDiameterAndWidth(req.Diameter, req.Width); err != nil {
 		return err
 	}
