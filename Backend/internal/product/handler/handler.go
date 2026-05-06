@@ -153,5 +153,21 @@ func parseGetProductsQueryParams(r *http.Request) (model.GetProductsQueryParams,
 		params.CompanyID = &compId
 	}
 
+	if limitStr := q.Get("limit"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return params, apperror.BadRequest("Invalid limit value", err)
+		}
+		params.Limit = limit
+	}
+
+	if offsetStr := q.Get("offset"); offsetStr != "" {
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil {
+			return params, apperror.BadRequest("Invalid offset value", err)
+		}
+		params.Offset = offset
+	}
+
 	return params, nil
 }

@@ -114,12 +114,15 @@ func (r *repository) GetAll(ctx context.Context, params model.GetProductsQueryPa
 			AND 
 			(@category_id::int IS NULL OR p.category_id = @category_id::int)
 		ORDER BY 
-			p.product_name`
+			p.product_name
+		LIMIT @limit OFFSET @offset`
 
 	rows, err := r.db.Query(ctx, query,
 		pgx.NamedArgs{
 			"company_id":  params.CompanyID,
 			"category_id": params.CategoryID,
+			"limit":       params.Limit,
+			"offset":      params.Offset,
 		},
 	)
 	if err != nil {

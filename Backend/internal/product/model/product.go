@@ -36,4 +36,6 @@ type GetProductById struct {
 type GetProductsQueryParams struct {
 	CategoryID *int
 	CompanyID  *uuid.UUID
+	Limit      int
+	Offset     int
 }

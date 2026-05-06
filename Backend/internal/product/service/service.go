@@ -37,6 +37,12 @@ func (s *service) GetProductByID(ctx context.Context, id uuid.UUID) (*model.GetP
 }
 
 func (s *service) GetAllProducts(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error) {
+	validatedParams, err := validation.ValidateParams(params.Limit, params.Offset)
+	if err != nil {
+		return nil, err
+	}
+	params.Limit = validatedParams.Limit
+	params.Offset = validatedParams.Offset
 	return s.repo.GetAll(ctx, params)
 }
 

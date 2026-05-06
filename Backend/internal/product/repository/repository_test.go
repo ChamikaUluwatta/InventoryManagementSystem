@@ -302,6 +302,16 @@ func TestGetAll(t *testing.T) {
 			t.Errorf("expected empty slice, got %d products", len(got))
 		}
 	})
+
+	t.Run("pagination limits results", func(t *testing.T) {
+		got, err := repo.GetAll(t.Context(), model.GetProductsQueryParams{Limit: 1, Offset: 0})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if len(got) > 1 {
+			t.Errorf("expected at most 1 product with limit 1, got %d", len(got))
+		}
+	})
 }
 
 func TestUpdate(t *testing.T) {

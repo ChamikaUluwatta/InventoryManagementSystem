@@ -114,3 +114,19 @@ func ValidateUpdateProduct(req *model.Product) error {
 	}
 	return nil
 }
+
+func ValidateParams(limit, offset int) (model.GetProductsQueryParams, error) {
+	if limit < 0 {
+		return model.GetProductsQueryParams{}, apperror.BadRequest("limit must be non-negative", nil)
+	}
+	if offset < 0 {
+		return model.GetProductsQueryParams{}, apperror.BadRequest("offset must be non-negative", nil)
+	}
+	if limit == 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		return model.GetProductsQueryParams{}, apperror.BadRequest("limit must be less than or equal to 100", nil)
+	}
+	return model.GetProductsQueryParams{Limit: limit, Offset: offset}, nil
+}

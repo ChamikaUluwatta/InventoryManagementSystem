@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,6 +14,7 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/service"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/testutil"
+	sharedtestutil "github.com/ChamikaUluwatta/Inventory_Management_System/internal/testutil"
 	"github.com/google/uuid"
 )
 
@@ -49,14 +49,6 @@ func setupHandler(svc service.Service) *http.ServeMux {
 	return mux
 }
 
-func marshalBody(t *testing.T, v any) *bytes.Buffer {
-	t.Helper()
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(v); err != nil {
-		t.Fatalf("failed to marshal body: %v", err)
-	}
-	return &buf
-}
 
 func TestCreate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -67,7 +59,7 @@ func TestCreate(t *testing.T) {
 		}
 		mux := setupHandler(svc)
 
-		body := marshalBody(t, testutil.CreateProductRequestMock())
+		body := sharedtestutil.MarshalBody(t, testutil.CreateProductRequestMock())
 		req := httptest.NewRequest("POST", "/products", body)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -98,7 +90,7 @@ func TestCreate(t *testing.T) {
 		}
 		mux := setupHandler(svc)
 
-		body := marshalBody(t, testutil.CreateProductRequestMock())
+		body := sharedtestutil.MarshalBody(t, testutil.CreateProductRequestMock())
 		req := httptest.NewRequest("POST", "/products", body)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -266,7 +258,7 @@ func TestUpdate(t *testing.T) {
 		}
 		mux := setupHandler(svc)
 
-		body := marshalBody(t, product)
+		body := sharedtestutil.MarshalBody(t, product)
 		req := httptest.NewRequest("PUT", "/products/"+product.ProductID.String(), body)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -323,7 +315,7 @@ func TestUpdate(t *testing.T) {
 		}
 		mux := setupHandler(svc)
 
-		body := marshalBody(t, product)
+		body := sharedtestutil.MarshalBody(t, product)
 		req := httptest.NewRequest("PUT", "/products/"+uuid.New().String(), body)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -404,7 +396,7 @@ func TestErrorResponse(t *testing.T) {
 	}
 	mux := setupHandler(svc)
 
-	body := marshalBody(t, testutil.CreateProductRequestMock())
+	body := sharedtestutil.MarshalBody(t, testutil.CreateProductRequestMock())
 	req := httptest.NewRequest("POST", "/products", body)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
