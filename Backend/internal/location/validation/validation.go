@@ -12,12 +12,12 @@ func ValidateLocationID(id string) error {
 	return nil
 }
 
-func ValidateParams(limit, offset int) (error, model.QueryParams) {
+func ValidateParams(limit, offset int) (model.QueryParams, error) {
 	if limit < 0 {
-		return apperror.BadRequest("limit must be non-negative", nil), model.QueryParams{}
+		return model.QueryParams{}, apperror.BadRequest("limit must be non-negative", nil)
 	}
 	if offset < 0 {
-		return apperror.BadRequest("offset must be non-negative", nil), model.QueryParams{}
+		return model.QueryParams{}, apperror.BadRequest("offset must be non-negative", nil)
 	}
 
 	if limit == 0 {
@@ -25,7 +25,7 @@ func ValidateParams(limit, offset int) (error, model.QueryParams) {
 	}
 
 	if limit > 100 {
-		return apperror.BadRequest("limit must be less than or equal to 100", nil), model.QueryParams{}
+		return model.QueryParams{}, apperror.BadRequest("limit must be less than or equal to 100", nil)
 	}
-	return nil, model.QueryParams{Limit: limit, Offset: offset}
+	return model.QueryParams{Limit: limit, Offset: offset}, nil
 }

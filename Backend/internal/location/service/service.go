@@ -23,7 +23,6 @@ type service struct {
 func NewService(repo repository.Repository) *service {
 	return &service{repo: repo}
 }
-
 func (s *service) CreateLocation(ctx context.Context, location *model.Location) error {
 	if err := validation.ValidateLocationID(location.LocationID); err != nil {
 		return err
@@ -36,12 +35,11 @@ func (s *service) GetLocationByID(ctx context.Context, id string) (*model.Locati
 }
 
 func (s *service) GetAllLocations(ctx context.Context, params model.QueryParams) ([]model.Location, error) {
-	if err, validatedParams := validation.ValidateParams(params.Limit, params.Offset); err != nil {
+	validatedParams, err := validation.ValidateParams(params.Limit, params.Offset)
+	if err != nil {
 		return nil, err
-	} else {
-		params = validatedParams
 	}
-	return s.repo.GetAll(ctx, params)
+	return s.repo.GetAll(ctx, validatedParams)
 }
 
 func (s *service) UpdateLocation(ctx context.Context, location *model.Location) error {

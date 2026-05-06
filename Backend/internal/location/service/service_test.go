@@ -13,7 +13,7 @@ import (
 type mockRepo struct {
 	createFunc  func(ctx context.Context, location *model.Location) error
 	getByIDFunc func(ctx context.Context, id string) (*model.Location, error)
-	getAllFunc  func(ctx context.Context) ([]model.Location, error)
+	getAllFunc  func(ctx context.Context, params model.QueryParams) ([]model.Location, error)
 	updateFunc  func(ctx context.Context, location *model.Location) error
 	deleteFunc  func(ctx context.Context, id string) error
 }
@@ -25,7 +25,7 @@ func (m *mockRepo) GetByID(ctx context.Context, id string) (*model.Location, err
 	return m.getByIDFunc(ctx, id)
 }
 func (m *mockRepo) GetAll(ctx context.Context, params model.QueryParams) ([]model.Location, error) {
-	return m.getAllFunc(ctx)
+	return m.getAllFunc(ctx, params)
 }
 func (m *mockRepo) Update(ctx context.Context, location *model.Location) error {
 	return m.updateFunc(ctx, location)
@@ -105,7 +105,7 @@ func TestGetLocationByID(t *testing.T) {
 func TestGetAllLocations(t *testing.T) {
 	t.Run("success with results", func(t *testing.T) {
 		mock := &mockRepo{
-			getAllFunc: func(ctx context.Context) ([]model.Location, error) {
+			getAllFunc: func(ctx context.Context, params model.QueryParams) ([]model.Location, error) {
 				return []model.Location{testutil.LocationMock()}, nil
 			},
 		}
@@ -121,7 +121,7 @@ func TestGetAllLocations(t *testing.T) {
 
 	t.Run("empty list", func(t *testing.T) {
 		mock := &mockRepo{
-			getAllFunc: func(ctx context.Context) ([]model.Location, error) {
+			getAllFunc: func(ctx context.Context, params model.QueryParams) ([]model.Location, error) {
 				return []model.Location{}, nil
 			},
 		}
@@ -135,6 +135,59 @@ func TestGetAllLocations(t *testing.T) {
 		}
 	})
 
+	t.Run("negative limit returns validation error", func(t *testing.T) {
+		mock := &mockRepo{}
+		svc := service.NewService(mock)
+		_, err := svc.GetAllLocations(t.Context(), model.QueryParams{Limit: -1, Offset: 0})
+		if err == nil {
+			t.Fatal("expected validation error, got nil")
+		}
+		if err.Error() != "limit must be non-negative" {
+			t.Errorf("expected 'limit must be non-negative', got '%s'", err.Error())
+		}
+	})
+
+	t.Run("negative offset returns validation error", func(t *testing.T) {
+		mock := &mockRepo{}
+		svc := service.NewService(mock)
+		_, err := svc.GetAllLocations(t.Context(), model.QueryParams{Limit: 10, Offset: -1})
+		if err == nil {
+			t.Fatal("expected validation error, got nil")
+		}
+		if err.Error() != "offset must be non-negative" {
+			t.Errorf("expected 'offset must be non-negative', got '%s'", err.Error())
+		}
+	})
+
+	t.Run("limit over max returns validation error", func(t *testing.T) {
+		mock := &mockRepo{}
+		svc := service.NewService(mock)
+		_, err := svc.GetAllLocations(t.Context(), model.QueryParams{Limit: 101, Offset: 0})
+		if err == nil {
+			t.Fatal("expected validation error, got nil")
+		}
+		if err.Error() != "limit must be less than or equal to 100" {
+			t.Errorf("expected 'limit must be less than or equal to 100', got '%s'", err.Error())
+		}
+	})
+
+	t.Run("zero limit defaults to 10 before calling repo", func(t *testing.T) {
+		var capturedParams model.QueryParams
+		mock := &mockRepo{
+			getAllFunc: func(ctx context.Context, params model.QueryParams) ([]model.Location, error) {
+				capturedParams = params
+				return []model.Location{}, nil
+			},
+		}
+		svc := service.NewService(mock)
+		_, err := svc.GetAllLocations(t.Context(), model.QueryParams{Limit: 0, Offset: 0})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if capturedParams.Limit != 10 {
+			t.Errorf("expected default limit 10, got %d", capturedParams.Limit)
+		}
+	})
 }
 
 func TestUpdateLocation(t *testing.T) {
