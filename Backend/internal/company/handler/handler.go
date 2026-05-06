@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/model"
@@ -11,10 +12,10 @@ import (
 )
 
 type Handler struct {
-	service *service.Service
+	service service.Service
 }
 
-func NewHandler(service *service.Service) *Handler {
+func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
@@ -62,7 +63,8 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	results, err := h.service.GetAllCompanies(r.Context())
+	params := parseQueryParams(r)
+	results, err := h.service.GetAllCompanies(r.Context(), params)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -110,4 +112,19 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func parseQueryParams(r *http.Request) model.QueryParams {
+	var params model.QueryParams
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil {
+			params.Limit = limit
+		}
+	}
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if offset, err := strconv.Atoi(offsetStr); err == nil {
+			params.Offset = offset
+		}
+	}
+	return params
 }

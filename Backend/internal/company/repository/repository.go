@@ -14,7 +14,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, company *model.Company) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Company, error)
-	GetAll(ctx context.Context) ([]model.Company, error)
+	GetAll(ctx context.Context, params model.QueryParams) ([]model.Company, error)
 	Update(ctx context.Context, company *model.Company) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -68,13 +68,18 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company,
 	return &company, nil
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]model.Company, error) {
+func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Company, error) {
 	query := `
 		SELECT company_id, company_name
 		FROM "companies"
-		ORDER BY company_name`
+		ORDER BY company_name
+		LIMIT @limit OFFSET @offset`
 
-	rows, err := r.db.Query(ctx, query)
+	args := pgx.NamedArgs{
+		"limit":  params.Limit,
+		"offset": params.Offset,
+	}
+	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("failed to get all companies", err)
 	}

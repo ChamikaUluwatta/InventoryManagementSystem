@@ -9,36 +9,48 @@ import (
 	"github.com/google/uuid"
 )
 
-type Service struct {
+type Service interface {
+	CreateCompany(ctx context.Context, company *model.Company) error
+	GetCompanyByID(ctx context.Context, id uuid.UUID) (*model.Company, error)
+	GetAllCompanies(ctx context.Context, params model.QueryParams) ([]model.Company, error)
+	UpdateCompany(ctx context.Context, company *model.Company) error
+	DeleteCompany(ctx context.Context, id uuid.UUID) error
+}
+
+type service struct {
 	repo repository.Repository
 }
 
-func NewService(repo repository.Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo repository.Repository) *service {
+	return &service{repo: repo}
 }
 
-func (s *Service) CreateCompany(ctx context.Context, company *model.Company) error {
+func (s *service) CreateCompany(ctx context.Context, company *model.Company) error {
 	if err := validation.ValidateCompanyName(company.CompanyName); err != nil {
 		return err
 	}
 	return s.repo.Create(ctx, company)
 }
 
-func (s *Service) GetCompanyByID(ctx context.Context, id uuid.UUID) (*model.Company, error) {
+func (s *service) GetCompanyByID(ctx context.Context, id uuid.UUID) (*model.Company, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *Service) GetAllCompanies(ctx context.Context) ([]model.Company, error) {
-	return s.repo.GetAll(ctx)
+func (s *service) GetAllCompanies(ctx context.Context, params model.QueryParams) ([]model.Company, error) {
+	validatedParams, err := validation.ValidateParams(params.Limit, params.Offset)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.GetAll(ctx, validatedParams)
 }
 
-func (s *Service) UpdateCompany(ctx context.Context, company *model.Company) error {
+func (s *service) UpdateCompany(ctx context.Context, company *model.Company) error {
 	if err := validation.ValidateCompanyName(company.CompanyName); err != nil {
 		return err
 	}
 	return s.repo.Update(ctx, company)
 }
 
-func (s *Service) DeleteCompany(ctx context.Context, id uuid.UUID) error {
+func (s *service) DeleteCompany(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
