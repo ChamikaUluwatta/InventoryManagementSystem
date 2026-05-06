@@ -12,7 +12,7 @@ import (
 
 type Repository interface {
 	Create(ctx context.Context, location *model.Location) error
-	GetAll(ctx context.Context) ([]model.Location, error)
+	GetAll(ctx context.Context, params model.QueryParams) ([]model.Location, error)
 	GetByID(ctx context.Context, id string) (*model.Location, error)
 	Update(ctx context.Context, location *model.Location) error
 	Delete(ctx context.Context, id string) error
@@ -57,9 +57,13 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]model.Location, error) {
-	query := `SELECT location_id,image FROM "locations" ORDER BY location_id`
-	rows, err := r.db.Query(ctx, query)
+func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Location, error) {
+	query := `SELECT location_id,image FROM "locations" ORDER BY location_id LIMIT @limit OFFSET @offset`
+	args := pgx.NamedArgs{
+		"limit":  params.Limit,
+		"offset": params.Offset,
+	}
+	rows, err := r.db.Query(ctx, query, args)
 
 	if err != nil {
 		return nil, apperror.Internal("failed to get all locations", err)
