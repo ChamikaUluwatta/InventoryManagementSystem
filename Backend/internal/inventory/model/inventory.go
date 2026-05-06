@@ -8,3 +8,10 @@ type Inventory struct {
 	LocationID  string    `db:"location_id"  json:"location_id"`
 	Stock       int       `db:"stock"        json:"stock"`
 }
+
+type QueryParams struct {
+	Limit      int
+	Offset     int
+	ProductID  *uuid.UUID
+	LocationID *string
+}

@@ -6,7 +6,6 @@ import (
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/model"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -15,11 +14,9 @@ import (
 type Repository interface {
 	Create(ctx context.Context, inventory *model.Inventory) error
 	GetByID(ctx context.Context, id int) (*model.Inventory, error)
-	GetAll(ctx context.Context) ([]model.Inventory, error)
+	GetAll(ctx context.Context, params model.QueryParams) ([]model.Inventory, error)
 	Update(ctx context.Context, inventory *model.Inventory) error
 	Delete(ctx context.Context, id int) error
-	GetByProduct(ctx context.Context, productID uuid.UUID) ([]model.Inventory, error)
-	GetByLocation(ctx context.Context, locationID string) ([]model.Inventory, error)
 }
 
 type repository struct {
@@ -84,13 +81,24 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.Inventory, err
 	return &inventory, nil
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]model.Inventory, error) {
+func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Inventory, error) {
 	query := `
 		SELECT inventory_id, product_id, location_id, stock
 		FROM "inventories"
-		ORDER BY inventory_id`
+		WHERE
+			(@product_id::uuid IS NULL OR product_id = @product_id::uuid)
+			AND
+			(@location_id::text IS NULL OR location_id = @location_id::text)
+		ORDER BY inventory_id
+		LIMIT @limit OFFSET @offset`
 
-	rows, err := r.db.Query(ctx, query)
+	args := pgx.NamedArgs{
+		"limit":       params.Limit,
+		"offset":      params.Offset,
+		"product_id":  params.ProductID,
+		"location_id": params.LocationID,
+	}
+	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("failed to get all inventories", err)
 	}
@@ -144,42 +152,4 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 		return apperror.NotFound("inventory not found", nil)
 	}
 	return nil
-}
-
-func (r *repository) GetByProduct(ctx context.Context, productID uuid.UUID) ([]model.Inventory, error) {
-	query := `
-		SELECT inventory_id, product_id, location_id, stock
-		FROM "inventories"
-		WHERE product_id = @product_id
-		ORDER BY inventory_id`
-
-	args := pgx.NamedArgs{
-		"product_id": productID,
-	}
-	rows, err := r.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, apperror.Internal("failed to get inventories by product", err)
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToStructByName[model.Inventory])
-}
-
-func (r *repository) GetByLocation(ctx context.Context, locationID string) ([]model.Inventory, error) {
-	query := `
-		SELECT inventory_id, product_id, location_id, stock
-		FROM "inventories"
-		WHERE location_id = @location_id
-		ORDER BY inventory_id`
-
-	args := pgx.NamedArgs{
-		"location_id": locationID,
-	}
-	rows, err := r.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, apperror.Internal("failed to get inventories by location", err)
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToStructByName[model.Inventory])
 }

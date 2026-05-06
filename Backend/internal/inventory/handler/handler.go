@@ -12,10 +12,10 @@ import (
 )
 
 type Handler struct {
-	service *service.Service
+	service service.Service
 }
 
-func NewHandler(service *service.Service) *Handler {
+func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
@@ -25,8 +25,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /inventories/{id}", h.GetByID)
 	mux.HandleFunc("PUT /inventories/{id}", h.Update)
 	mux.HandleFunc("DELETE /inventories/{id}", h.Delete)
-	mux.HandleFunc("GET /inventories/by-product/{productId}", h.GetByProduct)
-	mux.HandleFunc("GET /inventories/by-location/{locationId}", h.GetByLocation)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +63,8 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	results, err := h.service.GetAllInventories(r.Context())
+	params := parseQueryParams(r)
+	results, err := h.service.GetAllInventories(r.Context(), params)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -115,37 +114,27 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) GetByProduct(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("productId")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		apperror.HandleError(w, apperror.BadRequest("invalid product id", err))
-		return
+func parseQueryParams(r *http.Request) model.QueryParams {
+	var params model.QueryParams
+
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil {
+			params.Limit = limit
+		}
+	}
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if offset, err := strconv.Atoi(offsetStr); err == nil {
+			params.Offset = offset
+		}
+	}
+	if productIDStr := r.URL.Query().Get("product_id"); productIDStr != "" {
+		if id, err := uuid.Parse(productIDStr); err == nil {
+			params.ProductID = &id
+		}
+	}
+	if locationIDStr := r.URL.Query().Get("location_id"); locationIDStr != "" {
+		params.LocationID = &locationIDStr
 	}
 
-	results, err := h.service.GetInventoriesByProduct(r.Context(), id)
-	if err != nil {
-		apperror.HandleError(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
-}
-
-func (h *Handler) GetByLocation(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("locationId")
-	if id == "" {
-		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
-		return
-	}
-
-	results, err := h.service.GetInventoriesByLocation(r.Context(), id)
-	if err != nil {
-		apperror.HandleError(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+	return params
 }
