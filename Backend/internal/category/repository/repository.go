@@ -13,7 +13,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, category *model.Category) error
 	GetByID(ctx context.Context, id int) (*model.Category, error)
-	GetAll(ctx context.Context) ([]model.Category, error)
+	GetAll(ctx context.Context, params model.QueryParams) ([]model.Category, error)
 	Update(ctx context.Context, category *model.Category) error
 	Delete(ctx context.Context, id int) error
 	GetByParent(ctx context.Context, parentID *int) ([]model.Category, error)
@@ -70,13 +70,18 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.Category, erro
 	return &category, nil
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]model.Category, error) {
+func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Category, error) {
 	query := `
 		SELECT category_id, category_name, parent_id
 		FROM "categories"
-		ORDER BY category_name`
+		ORDER BY category_name
+		LIMIT @limit OFFSET @offset`
 
-	rows, err := r.db.Query(ctx, query)
+	args := pgx.NamedArgs{
+		"limit":  params.Limit,
+		"offset": params.Offset,
+	}
+	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("failed to get all categories", err)
 	}

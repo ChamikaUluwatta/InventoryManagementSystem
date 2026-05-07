@@ -5,3 +5,8 @@ type Category struct {
 	CategoryName string `db:"category_name" json:"category_name"`
 	ParentID     *int   `db:"parent_id"     json:"parent_id"`
 }
+
+type QueryParams struct {
+	Limit  int
+	Offset int
+}
