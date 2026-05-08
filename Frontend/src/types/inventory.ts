@@ -12,3 +12,9 @@ export interface InventoryView {
   location_id: string;
   stock: number;
 }
+
+export interface InventoryCreateRequest {
+  product_id: string;
+  location_id: string;
+  stock: number;
+}

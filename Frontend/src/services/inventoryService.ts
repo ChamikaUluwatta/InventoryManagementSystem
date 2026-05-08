@@ -44,3 +44,24 @@ export const getInventoryWithProductDetails = async (): Promise<InventoryView[]>
     };
   });
 };
+
+export const createInventory = async (inventory: Omit<Inventory, 'inventory_id'>): Promise<Inventory> => {
+  const response = await fetch(`${API_BASE}/inventories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(inventory),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create inventory');
+  }
+  return response.json();
+};
+
+export const deleteInventory = async (id: number): Promise<void> => {
+  const response = await fetch(`${API_BASE}/inventories/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete inventory');
+  }
+};

@@ -37,16 +37,32 @@ function SheetOverlay({
   )
 }
 
+type SheetContentProps = React.ComponentProps<typeof SheetPrimitive.Content> & {
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | 'full' | 'auto'
+  showCloseButton?: boolean
+}
+
 function SheetContent({
   className,
   children,
   side = 'right',
+  size = 'sm',
   showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
-  side?: 'top' | 'right' | 'bottom' | 'left'
-  showCloseButton?: boolean
-}) {
+}: SheetContentProps) {
+  const sizeClasses: Record<string, string> = {
+    sm: 'data-[side=left]:w-3/4 data-[side=right]:w-3/4 data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm',
+    md: 'data-[side=left]:w-3/4 data-[side=right]:w-3/4 data-[side=left]:sm:max-w-md data-[side=right]:sm:max-w-md',
+    lg: 'data-[side=left]:w-3/4 data-[side=right]:w-3/4 data-[side=left]:sm:max-w-lg data-[side=right]:sm:max-w-lg',
+    xl: 'data-[side=left]:w-3/4 data-[side=right]:w-3/4 data-[side=left]:sm:max-w-xl data-[side=right]:sm:max-w-xl',
+    '2xl': 'data-[side=left]:w-3/4 data-[side=right]:w-3/4 data-[side=left]:sm:max-w-2xl data-[side=right]:sm:max-w-2xl',
+    '3xl': 'data-[side=left]:w-3/4 data-[side=right]:w-3/4 data-[side=left]:sm:max-w-3xl data-[side=right]:sm:max-w-3xl',
+    '4xl': 'data-[side=left]:w-3/4 data-[side=right]:w-3/4 data-[side=left]:sm:max-w-4xl data-[side=right]:sm:max-w-4xl',
+    full: 'data-[side=left]:w-full data-[side=right]:w-full data-[side=left]:max-w-full data-[side=right]:max-w-full',
+    auto: 'data-[side=left]:w-fit data-[side=right]:w-fit data-[side=left]:max-w-[90vw] data-[side=right]:max-w-[90vw] sm:data-[side=left]:max-w-[75vw] sm:data-[side=right]:max-w-[75vw]',
+  }
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -54,7 +70,8 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          'fixed z-50 flex flex-col bg-popover bg-clip-padding text-sm text-popover-foreground shadow-xl transition duration-200 ease-in-out data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=left]:data-open:slide-in-from-left-10 data-[side=right]:data-open:slide-in-from-right-10 data-[side=top]:data-open:slide-in-from-top-10 data-closed:animate-out data-closed:fade-out-0 data-[side=bottom]:data-closed:slide-out-to-bottom-10 data-[side=left]:data-closed:slide-out-to-left-10 data-[side=right]:data-closed:slide-out-to-right-10 data-[side=top]:data-closed:slide-out-to-top-10',
+          `fixed z-50 flex flex-col bg-popover bg-clip-padding text-sm text-popover-foreground shadow-xl transition duration-200 ease-in-out data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:border-r data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:border-l data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-open:animate-in data-open:fade-in-0 data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=left]:data-open:slide-in-from-left-10 data-[side=right]:data-open:slide-in-from-right-10 data-[side=top]:data-open:slide-in-from-top-10 data-closed:animate-out data-closed:fade-out-0 data-[side=bottom]:data-closed:slide-out-to-bottom-10 data-[side=left]:data-closed:slide-out-to-left-10 data-[side=right]:data-closed:slide-out-to-right-10 data-[side=top]:data-closed:slide-out-to-top-10`,
+          sizeClasses[size],
           className,
         )}
         {...props}
@@ -97,7 +114,7 @@ function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPr
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn('font-heading text-base font-medium text-foreground', className)}
+      className={cn('font-heading text-base text-foreground', className)}
       {...props}
     />
   )

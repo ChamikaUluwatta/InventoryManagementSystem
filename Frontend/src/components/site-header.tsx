@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { SearchForm } from '@/components/search-form'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,7 +18,8 @@ const breadcrumbConfig: Record<string, { label: string; parent?: { label: string
     '/': { label: '' },
     '/products': { label: 'Products' },
     '/products/add': { label: 'Add Product' },
-    '/inventory': { label: 'Inventory' },
+    '/stock': { label: 'Stock' },
+    '/returns': { label: 'Returns' },
     '/locations': { label: 'Locations' },
     '/categories': { label: 'Categories' },
   }
@@ -86,7 +86,7 @@ export function SiteHeader() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
-        <SearchForm className="w-full sm:ml-auto sm:w-auto" />
+        {/* <SearchForm className="w-full sm:ml-auto sm:w-auto" /> */}
       </div>
     </header>
   )

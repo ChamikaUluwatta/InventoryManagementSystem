@@ -1,11 +1,14 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@/components/Layout/AppLayout'
-import ViewManageProducts from '@/components/Product/ViewManageProducts/ViewManageProducts'
+import ManageProducts from '@/pages/Products/ManageProducts'
+
+import Category from '@/pages/Category/Category'
+import Inventory from '@/pages/Inventory/Inventory'
+import Location from '@/pages/Location/Location'
+import SupplierReturns from '@/pages/SupplierReturns/SupplierReturns'
 import { Button } from './components/ui/button'
-import ViewAddProduct from '@/components/Product/ViewAddProduct/ViewAddProduct'
-import ViewInventory from '@/components/Inventory/ViewInventory/ViewInventory'
-import ViewLocation from '@/components/Location/ViewLocation/ViewLocation'
-import ViewCategory from '@/components/Category/ViewCategory/ViewCategory'
+import Dashboard from './pages/Dashboard/Dashboard'
+
 
 
 function App() {
@@ -16,7 +19,7 @@ function App() {
           path="/products"
           element={
             <AppLayout>
-              <ViewManageProducts />
+              <ManageProducts />
             </AppLayout>
           }
         />
@@ -24,9 +27,7 @@ function App() {
           path="/"
           element={
             <AppLayout>
-              <div className="p-4 h-full flex items-center justify-center">
-                <h1 className="text-2xl font-bold">Welcome to Inventory Management system</h1>
-              </div>
+              <Dashboard />
             </AppLayout>
           }
         />
@@ -43,19 +44,12 @@ function App() {
             </AppLayout>
           }
         />
+        
         <Route
-          path="/products/new"
+          path="/stock"
           element={
             <AppLayout>
-              <ViewAddProduct />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/inventory"
-          element={
-            <AppLayout>
-              <ViewInventory />
+              <Inventory />
             </AppLayout>
           }
         />
@@ -63,7 +57,7 @@ function App() {
           path="/locations"
           element={
             <AppLayout>
-              <ViewLocation />
+              <Location />
             </AppLayout>
           }
         />
@@ -71,7 +65,25 @@ function App() {
           path="/categories"
           element={
             <AppLayout>
-              <ViewCategory />
+              <Category />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/companies"
+          element={
+            <AppLayout>
+              <div className="p-4 h-full flex items-center justify-center">
+                <h1 className="text-2xl font-bold">Companies - Coming Soon</h1>
+              </div>
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/returns"
+          element={
+            <AppLayout>
+              <SupplierReturns />
             </AppLayout>
           }
         />
