@@ -29,7 +29,7 @@ type SupplierReturn struct {
 	CreatedAt        time.Time            `db:"created_at"         json:"created_at"`
 	ApprovedAt       *time.Time           `db:"approved_at"        json:"approved_at,omitempty"`
 	CompletedAt      *time.Time           `db:"completed_at"       json:"completed_at,omitempty"`
-	Items            []SupplierReturnItem `json:"items,omitempty"`
+	Items            []SupplierReturnItem `db:"-" json:"items,omitempty"`
 }
 
 type SupplierReturnItem struct {
@@ -42,14 +42,6 @@ type SupplierReturnItem struct {
 
 	ProductNameSnapshot string `db:"product_name_snapshot" json:"product_name_snapshot"`
 	LocationSnapshot    string `db:"location_snapshot"     json:"location_snapshot"`
-}
-
-type CreateSupplierReturnRequest struct {
-	ReturnNo  string                            `json:"return_no"`
-	CompanyID uuid.UUID                         `json:"company_id"`
-	Reason    *string                           `json:"reason,omitempty"`
-	Notes     *string                           `json:"notes,omitempty"`
-	Items     []CreateSupplierReturnItemRequest `json:"items"`
 }
 
 type CreateSupplierReturnItemRequest struct {
@@ -70,4 +62,9 @@ func (s ReturnStatus) IsValid() bool {
 	default:
 		return false
 	}
+}
+
+type QueryParams struct {
+	Limit  int
+	Offset int
 }

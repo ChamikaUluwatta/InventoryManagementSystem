@@ -11,10 +11,10 @@ import (
 )
 
 type Handler struct {
-	service *service.Service
+	service service.Service
 }
 
-func NewHandler(service *service.Service) *Handler {
+func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
@@ -27,13 +27,13 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var req model.CreateSupplierReturnRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var result model.SupplierReturn
+	if err := json.NewDecoder(r.Body).Decode(&result); err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 
-	result, err := h.service.CreateSupplierReturn(r.Context(), &req)
+	err := h.service.CreateSupplierReturn(r.Context(), &result)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -63,7 +63,8 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	results, err := h.service.GetAllSupplierReturns(r.Context())
+	params := parseQueryParams(r)
+	results, err := h.service.GetAllSupplierReturns(r.Context(), params)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -111,4 +112,19 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func parseQueryParams(r *http.Request) model.QueryParams {
+	var params model.QueryParams
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil {
+			params.Limit = limit
+		}
+	}
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if offset, err := strconv.Atoi(offsetStr); err == nil {
+			params.Offset = offset
+		}
+	}
+	return params
 }

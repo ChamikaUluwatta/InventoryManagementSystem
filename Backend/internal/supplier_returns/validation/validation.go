@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func ValidateCreateSupplierReturnRequest(req *model.CreateSupplierReturnRequest) error {
+func ValidateCreateSupplierReturnRequest(req *model.SupplierReturn) error {
 	if req == nil {
 		return apperror.BadRequest("request body is required", nil)
 	}
@@ -59,4 +59,20 @@ func ValidateUpdateSupplierReturnStatus(status model.ReturnStatus) error {
 		return apperror.BadRequest("invalid supplier return status", nil)
 	}
 	return nil
+}
+
+func ValidateParams(limit, offset int) (model.QueryParams, error) {
+	if limit < 0 {
+		return model.QueryParams{}, apperror.BadRequest("limit must be non-negative", nil)
+	}
+	if offset < 0 {
+		return model.QueryParams{}, apperror.BadRequest("offset must be non-negative", nil)
+	}
+	if limit == 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		return model.QueryParams{}, apperror.BadRequest("limit must be less than or equal to 100", nil)
+	}
+	return model.QueryParams{Limit: limit, Offset: offset}, nil
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/supplier_returns/model"
@@ -10,9 +11,9 @@ import (
 )
 
 type SupplierReturnRepository interface {
-	Create(ctx context.Context, req *model.CreateSupplierReturnRequest) (*model.SupplierReturn, error)
+	Create(ctx context.Context, req *model.SupplierReturn) error
 	GetByID(ctx context.Context, id int) (*model.SupplierReturn, error)
-	GetAll(ctx context.Context) ([]model.SupplierReturn, error)
+	GetAll(ctx context.Context, params model.QueryParams) ([]model.SupplierReturn, error)
 	UpdateStatus(ctx context.Context, id int, status model.ReturnStatus) (*model.SupplierReturn, error)
 	Delete(ctx context.Context, id int) error
 }
@@ -25,10 +26,10 @@ func NewRepository(db *pgxpool.Pool) SupplierReturnRepository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, req *model.CreateSupplierReturnRequest) (*model.SupplierReturn, error) {
+func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return nil, apperror.Internal("failed to start transaction", err)
+		return apperror.Internal("failed to start transaction", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -37,8 +38,6 @@ func (r *repository) Create(ctx context.Context, req *model.CreateSupplierReturn
 		VALUES (@return_no, @company_id, @status, @reason, @notes)
 		RETURNING supplier_return_id, created_at, approved_at, completed_at`
 
-	var created model.SupplierReturn
-
 	err = tx.QueryRow(ctx, headerQuery, pgx.NamedArgs{
 		"return_no":  req.ReturnNo,
 		"company_id": req.CompanyID,
@@ -46,107 +45,137 @@ func (r *repository) Create(ctx context.Context, req *model.CreateSupplierReturn
 		"reason":     req.Reason,
 		"notes":      req.Notes,
 	}).Scan(
-		&created.SupplierReturnID,
+		&req.SupplierReturnID,
+		&req.CreatedAt,
+		&req.ApprovedAt,
+		&req.CompletedAt,
 	)
 	if err != nil {
-		return nil, toAppError("failed to create supplier return", err)
+		return apperror.Internal("failed to create supplier return", err)
 	}
 
 	itemQuery := `
-		INSERT INTO "supplier_return_items"
-			(supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot)
-		VALUES
-			(@supplier_return_id, @product_id, @location_id, @quantity, @unit_cost, @product_name_snapshot, @location_snapshot)
-		RETURNING supplier_return_item_id, supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot`
+    INSERT INTO "supplier_return_items"
+        (supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot)
+    SELECT @supplier_return_id, @product_id, @location_id, @quantity, @unit_cost,
+           p.product_name, @location_id
+    FROM "products" p
+    WHERE p.product_id = @product_id AND p.company_id = @company_id
+    RETURNING supplier_return_item_id,product_name_snapshot, location_snapshot`
 
-	snapshotQuery := `
-		SELECT p.product_name, l.location_id
-		FROM "products" p
-		JOIN "locations" l ON l.location_id = @location_id
-		WHERE p.product_id = @product_id
-		  AND p.company_id = @company_id`
-
+	batch := pgx.Batch{}
 	for _, item := range req.Items {
-		var productNameSnapshot string
-		var locationSnapshot string
-		err := tx.QueryRow(ctx, snapshotQuery, pgx.NamedArgs{
-			"product_id":  *item.ProductID,
-			"location_id": *item.LocationID,
-			"company_id":  req.CompanyID,
-		}).Scan(&productNameSnapshot, &locationSnapshot)
-		if err != nil {
-			return nil, apperror.Internal("Internal server error", err)
-		}
-
-		_, err = tx.Query(ctx, itemQuery, pgx.NamedArgs{
-			"supplier_return_id":    created.SupplierReturnID,
-			"product_id":            *item.ProductID,
-			"location_id":           *item.LocationID,
-			"quantity":              item.Quantity,
-			"unit_cost":             item.UnitCost,
-			"product_name_snapshot": productNameSnapshot,
-			"location_snapshot":     locationSnapshot,
+		batch.Queue(itemQuery, pgx.NamedArgs{
+			"supplier_return_id": req.SupplierReturnID,
+			"product_id":         item.ProductID,
+			"location_id":        item.LocationID,
+			"quantity":           item.Quantity,
+			"unit_cost":          item.UnitCost,
+			"company_id":         req.CompanyID,
 		})
-		if err != nil {
-			return nil, toAppError("Internal Server Error", err)
-		}
-
 	}
+
+	br := tx.SendBatch(ctx, &batch)
+
+	items := req.Items
+	req.Items = make([]model.SupplierReturnItem, 0, len(items))
+	for _, item := range items {
+		var insertedItem = model.SupplierReturnItem{
+			SupplierReturnID: item.SupplierReturnID,
+			ProductID:        item.ProductID,
+			LocationID:       item.LocationID,
+			Quantity:         item.Quantity,
+			UnitCost:         item.UnitCost,
+		}
+		if err := br.QueryRow().Scan(
+			&insertedItem.SupplierReturnItemID,
+			&insertedItem.ProductNameSnapshot,
+			&insertedItem.LocationSnapshot,
+		); err != nil {
+			br.Close()
+			if errors.Is(err, pgx.ErrNoRows) {
+				return apperror.BadRequest("invalid product_id or location_id for item", nil)
+			}
+			return apperror.Internal("failed to insert supplier return item", err)
+		}
+		req.Items = append(req.Items, insertedItem)
+	}
+
+	br.Close()
 
 	if err := tx.Commit(ctx); err != nil {
-		return nil, apperror.Internal("Internal server error", err)
+		return apperror.Internal("Internal server error", err)
 	}
 
-	return &created, nil
+	return nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id int) (*model.SupplierReturn, error) {
-	headerQuery := `
-		SELECT supplier_return_id, return_no, company_id, status, reason, notes, created_at, approved_at, completed_at
-		FROM "supplier_returns"
-		WHERE supplier_return_id = @supplier_return_id`
+	query := `
+		SELECT
+			sr.supplier_return_id, sr.return_no, sr.company_id, sr.status, sr.reason, sr.notes, sr.created_at, sr.approved_at, sr.completed_at,
+			sri.supplier_return_item_id, sri.product_id, sri.location_id, sri.quantity, sri.unit_cost, sri.product_name_snapshot, sri.location_snapshot
+		FROM "supplier_returns" sr
+		LEFT JOIN "supplier_return_items" sri ON sri.supplier_return_id = sr.supplier_return_id
+		WHERE sr.supplier_return_id = @supplier_return_id
+		ORDER BY sri.supplier_return_item_id`
 
-	headRows, err := r.db.Query(ctx, headerQuery, pgx.NamedArgs{
+	rows, err := r.db.Query(ctx, query, pgx.NamedArgs{
 		"supplier_return_id": id,
 	})
 	if err != nil {
 		return nil, apperror.Internal("Internal Server Error", err)
 	}
+	defer rows.Close()
 
-	result, err := pgx.CollectOneRow(headRows, pgx.RowToStructByName[model.SupplierReturn])
-	if err != nil {
-		return nil, apperror.Internal("Internal Server Error", err)
+	var result *model.SupplierReturn
+	for rows.Next() {
+		var header model.SupplierReturn
+		var item model.SupplierReturnItem
+		if err := rows.Scan(
+			&header.SupplierReturnID, &header.ReturnNo, &header.CompanyID, &header.Status, &header.Reason, &header.Notes,
+			&header.CreatedAt, &header.ApprovedAt, &header.CompletedAt,
+			&item.SupplierReturnItemID, &item.ProductID, &item.LocationID, &item.Quantity, &item.UnitCost,
+			&item.ProductNameSnapshot, &item.LocationSnapshot,
+		); err != nil {
+			return nil, apperror.Internal("Internal Server Error", err)
+		}
+
+		if result == nil {
+			header.Items = []model.SupplierReturnItem{item}
+			result = &header
+		} else {
+			result.Items = append(result.Items, item)
+		}
 	}
 
-	itemsQuery := `
-		SELECT supplier_return_item_id, supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot
-		FROM "supplier_return_items"
-		WHERE supplier_return_id = @supplier_return_id
-		ORDER BY supplier_return_item_id`
-
-	itemRows, err := r.db.Query(ctx, itemsQuery, pgx.NamedArgs{
-		"supplier_return_id": id,
-	})
-	if err != nil {
-		return nil, apperror.Internal("Internal Server Error", err)
+	if result == nil {
+		return nil, apperror.NotFound("supplier return not found", nil)
 	}
 
-	items, err := pgx.CollectRows(itemRows, pgx.RowToStructByName[model.SupplierReturnItem])
-	if err != nil {
-		return nil, apperror.Internal("Internal Server Error", err)
-	}
-
-	result.Items = items
-	return &result, nil
+	return result, nil
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]model.SupplierReturn, error) {
+func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.SupplierReturn, error) {
 	query := `
-		SELECT supplier_return_id, return_no, company_id, status, created_at, approved_at, completed_at
+		SELECT 
+			supplier_return_id,
+			return_no, company_id, 
+			status, 
+			reason, 
+			notes, 
+			created_at, 
+			approved_at, 
+			completed_at
 		FROM "supplier_returns"
-		ORDER BY created_at DESC, supplier_return_id DESC`
+		ORDER BY created_at DESC, supplier_return_id DESC
+		LIMIT @limit OFFSET @offset`
 
-	rows, err := r.db.Query(ctx, query)
+	args := pgx.NamedArgs{
+		"limit":  params.Limit,
+		"offset": params.Offset,
+	}
+	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("Internal Server Error", err)
 	}
@@ -166,11 +195,11 @@ func (r *repository) UpdateStatus(ctx context.Context, id int, status model.Retu
 		SET
 			status = @status,
 			approved_at = CASE
-				WHEN @status = 'approved' AND approved_at IS NULL THEN NOW()
+				WHEN @status::VARCHAR = 'approved' AND approved_at IS NULL THEN NOW()
 				ELSE approved_at
 			END,
 			completed_at = CASE
-				WHEN @status IN ('completed', 'credited') AND completed_at IS NULL THEN NOW()
+				WHEN @status::VARCHAR IN ('completed', 'credited') AND completed_at IS NULL THEN NOW()
 				ELSE completed_at
 			END
 		WHERE supplier_return_id = @supplier_return_id
@@ -178,7 +207,7 @@ func (r *repository) UpdateStatus(ctx context.Context, id int, status model.Retu
 
 	rows, err := r.db.Query(ctx, query, pgx.NamedArgs{
 		"supplier_return_id": id,
-		"status":             status,
+		"status":             string(status),
 	})
 	if err != nil {
 		return nil, toAppError("failed to update supplier return status", err)
