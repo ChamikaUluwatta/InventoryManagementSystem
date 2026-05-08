@@ -19,14 +19,14 @@ import (
 )
 
 type mockService struct {
-	createFunc  func(ctx context.Context, product *model.CreateProductRequest) (model.Product, error)
+	createFunc  func(ctx context.Context, product *model.Product) error
 	getByIDFunc func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
 	getAllFunc  func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
 	updateFunc  func(ctx context.Context, product *model.Product) error
 	deleteFunc  func(ctx context.Context, id uuid.UUID) error
 }
 
-func (m *mockService) CreateProduct(ctx context.Context, product *model.CreateProductRequest) (model.Product, error) {
+func (m *mockService) CreateProduct(ctx context.Context, product *model.Product) error {
 	return m.createFunc(ctx, product)
 }
 func (m *mockService) GetProductByID(ctx context.Context, id uuid.UUID) (*model.GetProductById, error) {
@@ -53,13 +53,13 @@ func setupHandler(svc service.Service) *http.ServeMux {
 func TestCreate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		svc := &mockService{
-			createFunc: func(ctx context.Context, p *model.CreateProductRequest) (model.Product, error) {
-				return testutil.ProductMock(), nil
+			createFunc: func(ctx context.Context, p *model.Product) error {
+				return nil
 			},
 		}
 		mux := setupHandler(svc)
 
-		body := sharedtestutil.MarshalBody(t, testutil.CreateProductRequestMock())
+		body := sharedtestutil.MarshalBody(t, testutil.ProductMock())
 		req := httptest.NewRequest("POST", "/products", body)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -84,13 +84,13 @@ func TestCreate(t *testing.T) {
 
 	t.Run("service error", func(t *testing.T) {
 		svc := &mockService{
-			createFunc: func(ctx context.Context, p *model.CreateProductRequest) (model.Product, error) {
-				return model.Product{}, apperror.BadRequest("Invalid Product name", nil)
+			createFunc: func(ctx context.Context, p *model.Product) error {
+				return apperror.BadRequest("Invalid Product name", nil)
 			},
 		}
 		mux := setupHandler(svc)
 
-		body := sharedtestutil.MarshalBody(t, testutil.CreateProductRequestMock())
+		body := sharedtestutil.MarshalBody(t, testutil.ProductMock())
 		req := httptest.NewRequest("POST", "/products", body)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -390,13 +390,13 @@ func TestDelete(t *testing.T) {
 
 func TestErrorResponse(t *testing.T) {
 	svc := &mockService{
-		createFunc: func(ctx context.Context, p *model.CreateProductRequest) (model.Product, error) {
-			return model.Product{}, errors.New("unexpected raw error")
+		createFunc: func(ctx context.Context, p *model.Product) error {
+			return errors.New("unexpected raw error")
 		},
 	}
 	mux := setupHandler(svc)
 
-	body := sharedtestutil.MarshalBody(t, testutil.CreateProductRequestMock())
+	body := sharedtestutil.MarshalBody(t, testutil.ProductMock())
 	req := httptest.NewRequest("POST", "/products", body)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)

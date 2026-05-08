@@ -10,7 +10,7 @@ import (
 )
 
 type Service interface {
-	CreateProduct(ctx context.Context, product *model.CreateProductRequest) (model.Product, error)
+	CreateProduct(ctx context.Context, product *model.Product) error
 	GetProductByID(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
 	GetAllProducts(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
 	UpdateProduct(ctx context.Context, product *model.Product) error
@@ -25,9 +25,9 @@ func NewService(repo repository.Repository) *service {
 	return &service{repo: repo}
 }
 
-func (s *service) CreateProduct(ctx context.Context, product *model.CreateProductRequest) (model.Product, error) {
+func (s *service) CreateProduct(ctx context.Context, product *model.Product) error {
 	if err := validation.ValidateCreateProduct(product); err != nil {
-		return model.Product{}, err
+		return err
 	}
 	return s.repo.Create(ctx, product)
 }

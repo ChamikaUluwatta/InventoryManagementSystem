@@ -26,7 +26,7 @@ type locationCreator interface {
 }
 
 type productCreator interface {
-	Create(ctx context.Context, product *productModel.CreateProductRequest) (productModel.Product, error)
+	Create(ctx context.Context, product *productModel.Product) error
 }
 
 type inventoryCreator interface {
@@ -79,7 +79,7 @@ func seedProductsFn(ctx context.Context, creator productCreator, seeds []product
 
 	var created []productModel.Product
 	for i, s := range seeds {
-		req := productModel.CreateProductRequest{
+		product := productModel.Product{
 			ProductName:        s.Name,
 			ProductDescription: s.Description,
 			Diameter:           decimal.NewFromFloat(s.Diameter),
@@ -88,8 +88,7 @@ func seedProductsFn(ctx context.Context, creator productCreator, seeds []product
 			Price:              decimal.NewFromFloat(s.Price),
 			CategoryID:         categoryIDs[i%len(categoryIDs)],
 		}
-		product, err := creator.Create(ctx, &req)
-		if err != nil {
+		if err := creator.Create(ctx, &product); err != nil {
 			log.Printf("Failed to create product %q: %v", s.Name, err)
 			continue
 		}

@@ -28,21 +28,20 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var req model.CreateProductRequest
+	var req model.Product
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid request body", err))
 		return
 	}
 
-	product, err := h.service.CreateProduct(r.Context(), &req)
-	if err != nil {
+	if err := h.service.CreateProduct(r.Context(), &req); err != nil {
 		apperror.HandleError(w, err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(product)
+	json.NewEncoder(w).Encode(req)
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {

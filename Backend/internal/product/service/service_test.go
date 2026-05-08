@@ -12,14 +12,14 @@ import (
 )
 
 type mockRepo struct {
-	createFunc func(ctx context.Context, product *model.CreateProductRequest) (model.Product, error)
+	createFunc func(ctx context.Context, product *model.Product) error
 	getById    func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
 	getAll     func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
 	update     func(ctx context.Context, product *model.Product) error
 	delete     func(ctx context.Context, id uuid.UUID) error
 }
 
-func (m *mockRepo) Create(ctx context.Context, product *model.CreateProductRequest) (model.Product, error) {
+func (m *mockRepo) Create(ctx context.Context, product *model.Product) error {
 	return m.createFunc(ctx, product)
 }
 
@@ -48,19 +48,25 @@ const (
 
 func TestCreateProduct(t *testing.T) {
 	mock := &mockRepo{
-		createFunc: func(ctx context.Context, product *model.CreateProductRequest) (model.Product, error) {
-			{
-				return model.Product{}, nil
-			}
+		createFunc: func(ctx context.Context, product *model.Product) error {
+			return nil
 		},
 	}
 
 	service := service.NewService(mock)
 
+	t.Run("success", func(t *testing.T) {
+		product := testutil.ProductMock()
+		err := service.CreateProduct(t.Context(), &product)
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+	})
+
 	t.Run("Validate Invalid Product Name", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock()
+		invalidProduct := testutil.ProductMock()
 		invalidProduct.ProductName = ""
-		_, err := service.CreateProduct(t.Context(), &invalidProduct)
+		err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
 			t.Error("Expected validation error for invalid product name but got nil")
 		}
@@ -71,9 +77,9 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Negative Price", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock()
+		invalidProduct := testutil.ProductMock()
 		invalidProduct.Price = invalidProduct.Price.Neg()
-		_, err := service.CreateProduct(t.Context(), &invalidProduct)
+		err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
 			t.Error("Expected validation error for negative price but got nil")
 		}
@@ -83,10 +89,10 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Invalid Diameter and Width", func(t *testing.T) {
-		invalidProductDiameter := testutil.CreateProductRequestMock()
+		invalidProductDiameter := testutil.ProductMock()
 		invalidProductDiameter.Diameter = invalidProductDiameter.Diameter.Neg()
 		invalidProductDiameter.Width = invalidProductDiameter.Width.Neg()
-		_, err := service.CreateProduct(t.Context(), &invalidProductDiameter)
+		err := service.CreateProduct(t.Context(), &invalidProductDiameter)
 		if err == nil {
 			t.Fatalf("Expected validation error for negative diameter and width but got nil")
 		}
@@ -95,9 +101,9 @@ func TestCreateProduct(t *testing.T) {
 			t.Errorf("Expected error message 'diameter cannot be negative' but got '%s'", err.Error())
 		}
 
-		invalidProductWidth := testutil.CreateProductRequestMock()
+		invalidProductWidth := testutil.ProductMock()
 		invalidProductWidth.Width = invalidProductWidth.Width.Neg()
-		_, err = service.CreateProduct(t.Context(), &invalidProductWidth)
+		err = service.CreateProduct(t.Context(), &invalidProductWidth)
 		if err == nil {
 			t.Fatalf("Expected validation error for negative width but got nil")
 		}
@@ -108,9 +114,9 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Invalid Company ID", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock()
+		invalidProduct := testutil.ProductMock()
 		invalidProduct.CompanyID = uuid.Nil
-		_, err := service.CreateProduct(t.Context(), &invalidProduct)
+		err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
 			t.Error("Expected validation error for invalid company id but got nil")
 		}
@@ -120,9 +126,9 @@ func TestCreateProduct(t *testing.T) {
 	})
 
 	t.Run("Validate Invalid Category ID", func(t *testing.T) {
-		invalidProduct := testutil.CreateProductRequestMock()
+		invalidProduct := testutil.ProductMock()
 		invalidProduct.CategoryID = 0
-		_, err := service.CreateProduct(t.Context(), &invalidProduct)
+		err := service.CreateProduct(t.Context(), &invalidProduct)
 		if err == nil {
 			t.Error("Expected validation error for invalid category id but got nil")
 		}

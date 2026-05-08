@@ -12,7 +12,7 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, product *model.CreateProductRequest) (model.Product, error)
+	Create(ctx context.Context, product *model.Product) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
 	GetAll(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
 	Update(ctx context.Context, product *model.Product) error
@@ -27,8 +27,7 @@ func NewRepository(db *pgxpool.Pool) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, product *model.CreateProductRequest) (model.Product, error) {
-	var productID uuid.UUID
+func (r *repository) Create(ctx context.Context, product *model.Product) error {
 	query := `
 		INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id)
 		VALUES (@product_name, @product_description, @diameter, @width, @company_id, @price, @category_id, @location_id)
@@ -43,12 +42,12 @@ func (r *repository) Create(ctx context.Context, product *model.CreateProductReq
 		"category_id":         product.CategoryID,
 		"location_id":         product.LocationID,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(&productID)
+	err := r.db.QueryRow(ctx, query, args).Scan(&product.ProductID)
 
 	if err != nil {
-		return model.Product{}, apperror.Internal("failed to create product", err)
+		return apperror.Internal("failed to create product", err)
 	}
-	return model.Product{ProductID: productID}, nil
+	return nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.GetProductById, error) {

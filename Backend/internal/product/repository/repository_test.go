@@ -63,7 +63,7 @@ func TestCreate(t *testing.T) {
 	repo := repository.NewRepository(testDB.Pool)
 
 	t.Run("success", func(t *testing.T) {
-		req := model.CreateProductRequest{
+		req := model.Product{
 			ProductName:        "Test Create Product",
 			ProductDescription: "A test product",
 			Diameter:           decimal.NewFromFloat(10.0),
@@ -73,17 +73,17 @@ func TestCreate(t *testing.T) {
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
 		}
-		product, err := repo.Create(t.Context(), &req)
+		err := repo.Create(t.Context(), &req)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
-		if product.ProductID == uuid.Nil {
+		if req.ProductID == uuid.Nil {
 			t.Error("expected non-nil product ID")
 		}
 	})
 
 	t.Run("foreign key violation - invalid category", func(t *testing.T) {
-		req := model.CreateProductRequest{
+		req := model.Product{
 			ProductName:        "Test FK Category",
 			ProductDescription: "Should fail",
 			Diameter:           decimal.NewFromFloat(1.0),
@@ -93,14 +93,14 @@ func TestCreate(t *testing.T) {
 			CategoryID:         99999,
 			LocationID:         seedLocationID,
 		}
-		_, err := repo.Create(t.Context(), &req)
+		err := repo.Create(t.Context(), &req)
 		if err == nil {
 			t.Fatal("expected foreign key error, got nil")
 		}
 	})
 
 	t.Run("foreign key violation - invalid company", func(t *testing.T) {
-		req := model.CreateProductRequest{
+		req := model.Product{
 			ProductName:        "Test FK Company",
 			ProductDescription: "Should fail",
 			Diameter:           decimal.NewFromFloat(1.0),
@@ -110,14 +110,14 @@ func TestCreate(t *testing.T) {
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
 		}
-		_, err := repo.Create(t.Context(), &req)
+		err := repo.Create(t.Context(), &req)
 		if err == nil {
 			t.Fatal("expected foreign key error, got nil")
 		}
 	})
 
 	t.Run("duplicate unique constraint", func(t *testing.T) {
-		req := model.CreateProductRequest{
+		req := model.Product{
 			ProductName:        "Unique Product Create",
 			ProductDescription: "will duplicate",
 			Diameter:           decimal.NewFromFloat(3.0),
@@ -127,10 +127,10 @@ func TestCreate(t *testing.T) {
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
 		}
-		if _, err := repo.Create(t.Context(), &req); err != nil {
+		if err := repo.Create(t.Context(), &req); err != nil {
 			t.Fatalf("first create should succeed, got %v", err)
 		}
-		_, err := repo.Create(t.Context(), &req)
+		err := repo.Create(t.Context(), &req)
 		if err == nil {
 			t.Fatal("expected unique constraint violation, got nil")
 		}
@@ -140,7 +140,7 @@ func TestCreate(t *testing.T) {
 func TestGetByID(t *testing.T) {
 	repo := repository.NewRepository(testDB.Pool)
 
-	req := model.CreateProductRequest{
+	req := model.Product{
 		ProductName:        "Test GetByID Product",
 		ProductDescription: "for get by id test",
 		Diameter:           decimal.NewFromFloat(10.0),
@@ -150,13 +150,13 @@ func TestGetByID(t *testing.T) {
 		CategoryID:         seedCategoryID,
 		LocationID:         seedLocationID,
 	}
-	created, err := repo.Create(t.Context(), &req)
+	err := repo.Create(t.Context(), &req)
 	if err != nil {
 		t.Fatalf("failed to create product: %v", err)
 	}
 
 	t.Run("zero for stock when no inventory", func(t *testing.T) {
-		got, err := repo.GetByID(t.Context(), created.ProductID)
+		got, err := repo.GetByID(t.Context(), req.ProductID)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -167,19 +167,19 @@ func TestGetByID(t *testing.T) {
 
 	_, err = testDB.Pool.Exec(t.Context(),
 		`INSERT INTO "inventories" (product_id, location_id, stock) VALUES ($1, $2, $3)`,
-		created.ProductID, seedLocationID, int32(50),
+		req.ProductID, seedLocationID, int32(50),
 	)
 	if err != nil {
 		t.Fatalf("failed to create inventory: %v", err)
 	}
 
 	t.Run("found", func(t *testing.T) {
-		got, err := repo.GetByID(t.Context(), created.ProductID)
+		got, err := repo.GetByID(t.Context(), req.ProductID)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
-		if got.ProductID != created.ProductID {
-			t.Errorf("expected product ID %v, got %v", created.ProductID, got.ProductID)
+		if got.ProductID != req.ProductID {
+			t.Errorf("expected product ID %v, got %v", req.ProductID, got.ProductID)
 		}
 		if got.Stock != 50 {
 			t.Errorf("expected stock 50, got %d", got.Stock)
@@ -208,7 +208,7 @@ func TestGetAll(t *testing.T) {
 		t.Fatalf("failed to create second category: %v", err)
 	}
 
-	products := []model.CreateProductRequest{
+	products := []model.Product{
 		{
 			ProductName:        "AA GetAll Product",
 			ProductDescription: "desc",
@@ -242,7 +242,7 @@ func TestGetAll(t *testing.T) {
 	}
 
 	for i := range products {
-		if _, err := repo.Create(t.Context(), &products[i]); err != nil {
+		if err := repo.Create(t.Context(), &products[i]); err != nil {
 			t.Fatalf("failed to create product %s: %v", products[i].ProductName, err)
 		}
 	}
@@ -317,7 +317,7 @@ func TestGetAll(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	repo := repository.NewRepository(testDB.Pool)
 
-	req := model.CreateProductRequest{
+	req := model.Product{
 		ProductName:        "Original Update Product",
 		ProductDescription: "original description",
 		Diameter:           decimal.NewFromFloat(5.0),
@@ -327,14 +327,14 @@ func TestUpdate(t *testing.T) {
 		CategoryID:         seedCategoryID,
 		LocationID:         seedLocationID,
 	}
-	created, err := repo.Create(t.Context(), &req)
+	err := repo.Create(t.Context(), &req)
 	if err != nil {
 		t.Fatalf("failed to create product: %v", err)
 	}
 
 	_, err = testDB.Pool.Exec(t.Context(),
 		`INSERT INTO "inventories" (product_id, location_id, stock) VALUES ($1, $2, $3)`,
-		created.ProductID, seedLocationID, int32(10),
+		req.ProductID, seedLocationID, int32(10),
 	)
 	if err != nil {
 		t.Fatalf("failed to create inventory: %v", err)
@@ -342,7 +342,7 @@ func TestUpdate(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		updated := model.Product{
-			ProductID:          created.ProductID,
+			ProductID:          req.ProductID,
 			ProductName:        "Updated Name",
 			ProductDescription: "updated description",
 			Diameter:           decimal.NewFromFloat(15.0),
@@ -356,7 +356,7 @@ func TestUpdate(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		got, err := repo.GetByID(t.Context(), created.ProductID)
+		got, err := repo.GetByID(t.Context(), req.ProductID)
 		if err != nil {
 			t.Fatalf("failed to get updated product: %v", err)
 		}
@@ -400,7 +400,7 @@ func TestUpdate(t *testing.T) {
 
 	t.Run("Non exist location id", func(t *testing.T) {
 		wrongLocation := model.Product{
-			ProductID:          created.ProductID,
+			ProductID:          req.ProductID,
 			ProductName:        "Updated Product",
 			ProductDescription: "Updated description",
 			Diameter:           decimal.NewFromFloat(1.0),
@@ -419,7 +419,7 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	repo := repository.NewRepository(testDB.Pool)
 
-	req := model.CreateProductRequest{
+	req := model.Product{
 		ProductName:        "Delete Me Product",
 		ProductDescription: "to be deleted",
 		Diameter:           decimal.NewFromFloat(1.0),
@@ -429,17 +429,17 @@ func TestDelete(t *testing.T) {
 		CategoryID:         seedCategoryID,
 		LocationID:         seedLocationID,
 	}
-	created, err := repo.Create(t.Context(), &req)
+	err := repo.Create(t.Context(), &req)
 	if err != nil {
 		t.Fatalf("failed to create product: %v", err)
 	}
 
 	t.Run("success", func(t *testing.T) {
-		if err := repo.Delete(t.Context(), created.ProductID); err != nil {
+		if err := repo.Delete(t.Context(), req.ProductID); err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		_, err := repo.GetByID(t.Context(), created.ProductID)
+		_, err := repo.GetByID(t.Context(), req.ProductID)
 		if err == nil {
 			t.Fatal("expected product to be deleted, but found it")
 		}

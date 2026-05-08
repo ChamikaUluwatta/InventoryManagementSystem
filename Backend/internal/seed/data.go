@@ -42,6 +42,7 @@ var defaultLocations = []locationSeed{
 	{LocationID: "LOC-001"},
 	{LocationID: "LOC-002"},
 	{LocationID: "WAREHOUSE-A"},
+	{LocationID: "unassigned"},
 }
 
 var defaultProducts = []productSeed{

@@ -62,7 +62,7 @@ func ValidateCategoryID(categoryID int) error {
 	return nil
 }
 
-func ValidateCreateProduct(req *model.CreateProductRequest) error {
+func ValidateCreateProduct(req *model.Product) error {
 	if req == nil {
 		return apperror.BadRequest("request body is required", nil)
 	}

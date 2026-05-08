@@ -16,18 +16,6 @@ type Product struct {
 	CategoryID         int             `db:"category_id"  json:"category_id"`
 	LocationID         string          `db:"location_id"  json:"location_id"`
 }
-
-type CreateProductRequest struct {
-	ProductName        string          `json:"product_name"`
-	ProductDescription string          `json:"product_description"`
-	Diameter           decimal.Decimal `json:"diameter"`
-	Width              decimal.Decimal `json:"width"`
-	CompanyID          uuid.UUID       `json:"company_id"`
-	Price              decimal.Decimal `json:"price"`
-	CategoryID         int             `json:"category_id"`
-	LocationID         string          `json:"location_id"`
-}
-
 type GetProductById struct {
 	Product
 	Stock int `db:"stock" json:"stock"`
