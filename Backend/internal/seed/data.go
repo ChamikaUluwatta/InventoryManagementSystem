@@ -1,7 +1,8 @@
 package seed
 
 type companySeed struct {
-	Name string
+	Name        string
+	Description string
 }
 
 type categorySeed struct {
@@ -27,9 +28,9 @@ type inventorySeed struct {
 }
 
 var defaultCompanies = []companySeed{
-	{Name: "Acme Corp"},
-	{Name: "Tech Solutions"},
-	{Name: "Global Industries"},
+	{Name: "Acme Corp", Description: "Leading manufacturer of industrial widgets"},
+	{Name: "Tech Solutions", Description: ""},
+	{Name: "Global Industries", Description: "International supply chain solutions"},
 }
 
 var defaultCategories = []categorySeed{
