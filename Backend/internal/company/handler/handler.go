@@ -25,6 +25,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /companies/{id}", h.GetByID)
 	mux.HandleFunc("PUT /companies/{id}", h.Update)
 	mux.HandleFunc("DELETE /companies/{id}", h.Delete)
+	mux.HandleFunc("GET /companies/{id}/dependencies", h.GetCompanyDependencies)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +113,24 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) GetCompanyDependencies(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		apperror.HandleError(w, apperror.BadRequest("invalid company id", err))
+		return
+	}
+
+	result, err := h.service.GetCompanyDependencies(r.Context(), id)
+	if err != nil {
+		apperror.HandleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 func parseQueryParams(r *http.Request) model.QueryParams {

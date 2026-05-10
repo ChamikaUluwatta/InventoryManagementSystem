@@ -12,11 +12,12 @@ import (
 )
 
 type mockRepo struct {
-	createFunc  func(ctx context.Context, company *model.Company) error
-	getByIDFunc func(ctx context.Context, id uuid.UUID) (*model.Company, error)
-	getAllFunc  func(ctx context.Context, params model.QueryParams) ([]model.Company, error)
-	updateFunc  func(ctx context.Context, company *model.Company) error
-	deleteFunc  func(ctx context.Context, id uuid.UUID) error
+	createFunc                 func(ctx context.Context, company *model.Company) error
+	getByIDFunc                func(ctx context.Context, id uuid.UUID) (*model.Company, error)
+	getAllFunc                 func(ctx context.Context, params model.QueryParams) ([]model.Company, error)
+	updateFunc                 func(ctx context.Context, company *model.Company) error
+	deleteFunc                 func(ctx context.Context, id uuid.UUID) error
+	getCompanyDependenciesFunc func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error)
 }
 
 func (m *mockRepo) Create(ctx context.Context, company *model.Company) error {
@@ -33,6 +34,9 @@ func (m *mockRepo) Update(ctx context.Context, company *model.Company) error {
 }
 func (m *mockRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return m.deleteFunc(ctx, id)
+}
+func (m *mockRepo) GetCompanyDependencies(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+	return m.getCompanyDependenciesFunc(ctx, id)
 }
 
 const emptyNameError = "company name is required"
@@ -218,6 +222,63 @@ func TestUpdateCompany(t *testing.T) {
 		svc := service.NewService(mock)
 		company := testutil.CompanyMock()
 		err := svc.UpdateCompany(t.Context(), &company)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err.Error() != "company not found" {
+			t.Errorf("expected 'company not found', got '%s'", err.Error())
+		}
+	})
+}
+
+func TestGetCompanyDependencies(t *testing.T) {
+	t.Run("success with dependencies", func(t *testing.T) {
+		expected := model.CompanyDependency{ProductCount: 3, SupplierCount: 2}
+		mock := &mockRepo{
+			getCompanyDependenciesFunc: func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+				return expected, nil
+			},
+		}
+		svc := service.NewService(mock)
+		got, err := svc.GetCompanyDependencies(t.Context(), uuid.New())
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if got.ProductCount != expected.ProductCount {
+			t.Errorf("expected product count %d, got %d", expected.ProductCount, got.ProductCount)
+		}
+		if got.SupplierCount != expected.SupplierCount {
+			t.Errorf("expected supplier count %d, got %d", expected.SupplierCount, got.SupplierCount)
+		}
+	})
+
+	t.Run("no dependencies", func(t *testing.T) {
+		mock := &mockRepo{
+			getCompanyDependenciesFunc: func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+				return model.CompanyDependency{}, nil
+			},
+		}
+		svc := service.NewService(mock)
+		got, err := svc.GetCompanyDependencies(t.Context(), uuid.New())
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if got.ProductCount != 0 {
+			t.Errorf("expected 0 products, got %d", got.ProductCount)
+		}
+		if got.SupplierCount != 0 {
+			t.Errorf("expected 0 suppliers, got %d", got.SupplierCount)
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		mock := &mockRepo{
+			getCompanyDependenciesFunc: func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+				return model.CompanyDependency{}, errors.New("company not found")
+			},
+		}
+		svc := service.NewService(mock)
+		_, err := svc.GetCompanyDependencies(t.Context(), uuid.New())
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
