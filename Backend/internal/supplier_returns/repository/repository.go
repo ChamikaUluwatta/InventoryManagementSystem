@@ -168,13 +168,16 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 			approved_at, 
 			completed_at
 		FROM "supplier_returns"
+		WHERE (@company_id::uuid IS NULL OR company_id = @company_id::uuid)
 		ORDER BY created_at DESC, supplier_return_id DESC
 		LIMIT @limit OFFSET @offset`
 
 	args := pgx.NamedArgs{
-		"limit":  params.Limit,
-		"offset": params.Offset,
+		"limit":      params.Limit,
+		"offset":     params.Offset,
+		"company_id": params.CompanyID,
 	}
+
 	rows, err := r.db.Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("Internal Server Error", err)
