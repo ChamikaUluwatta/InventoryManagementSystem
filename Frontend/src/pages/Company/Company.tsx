@@ -25,73 +25,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Location } from '@/types/location'
-import { getAllLocations } from '@/services/locationService'
+import type { Company } from '@/types/company'
+import { getAllCompanies } from '@/services/companyService'
 import { Spinner } from '@/components/ui/spinner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { ErrorMessage } from '@/components/ui/error-message'
-import AddLocationSheetContent from '@/components/Location/AddLocationSheetContent'
-import LocationSheetContent from '@/components/Location/LocationSheetContent'
+import AddCompanySheetContent from '@/components/Company/AddCompanySheetContent'
+import CompanySheetContent from '@/components/Company/CompanySheetContent'
 import { Search, Plus } from 'lucide-react'
 
-const columns: ColumnDef<Location>[] = [
+const columns: ColumnDef<Company>[] = [
   {
-    accessorKey: 'location_id',
-    header: 'LOCATION ID',
-    cell: ({ row }) => <span className="font-mono">{row.getValue('location_id')}</span>,
+    accessorKey: 'company_name',
+    header: 'COMPANY NAME',
+    cell: ({ row }) => <span className="font-medium">{row.getValue('company_name')}</span>,
   },
   {
-    accessorKey: 'image',
-    header: 'IMAGE',
-    cell: ({ row }) => <span className="font-mono">{row.getValue('image') || '—'}</span>,
+    accessorKey: 'description',
+    header: 'DESCRIPTION',
+    cell: ({ row }) => {
+      const desc = row.getValue('description') as string | null | undefined
+      if (!desc) {
+        return <span className="italic text-muted-foreground/50 text-xs font-mono">No description</span>
+      }
+      return <span className="font-mono text-xs text-muted-foreground">{desc}</span>
+    },
   },
 ]
 
-export default function Location() {
-  const [locations, setLocations] = useState<Location[]>([])
+export default function Company() {
+  const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [addSheetOpen, setAddSheetOpen] = useState(false)
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false)
 
   useEffect(() => {
-    const fetchLocations = async () => {
+    const fetchCompanies = async () => {
       try {
-        const data = await getAllLocations()
-        setLocations(data)
+        const data = await getAllCompanies()
+        setCompanies(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch locations')
+        setError(err instanceof Error ? err.message : 'Failed to fetch companies')
       } finally {
         setLoading(false)
       }
     }
-
-    fetchLocations()
+    fetchCompanies()
   }, [])
 
-  const handleRowClick = (location: Location) => {
-    setSelectedLocation(location)
-    setSheetOpen(true)
-  }
-
   const handleAddSuccess = () => {
-    getAllLocations().then(setLocations).catch(console.error)
+    getAllCompanies().then(setCompanies).catch(console.error)
   }
 
-  const handleSuccess = () => {
-    getAllLocations().then(setLocations).catch(console.error)
+  const handleRowClick = (company: Company) => {
+    setSelectedCompany(company)
+    setDetailSheetOpen(true)
   }
 
-  const handleClose = () => {
-    setSheetOpen(false)
-    setSelectedLocation(null)
+  const handleDetailClose = () => {
+    setDetailSheetOpen(false)
+    setSelectedCompany(null)
+  }
+
+  const handleDetailSuccess = () => {
+    getAllCompanies().then(setCompanies).catch(console.error)
   }
 
   const table = useReactTable({
-    data: locations,
+    data: companies,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -120,7 +125,6 @@ export default function Location() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="border-b border-border p-4 flex items-center justify-end shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -139,7 +143,6 @@ export default function Location() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="flex-1 overflow-auto">
         <Table className="table-industrial">
           <TableHeader>
@@ -167,7 +170,7 @@ export default function Location() {
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No locations found.
+                  No companies found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -189,15 +192,14 @@ export default function Location() {
         </Table>
       </div>
 
-      {/* Footer */}
       <div className="border-t border-border p-3 flex items-center justify-between shrink-0 text-xs text-muted-foreground font-mono">
         <div>
           SHOWING {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
           {Math.min(
             (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-            locations.length,
+            companies.length,
           )}{' '}
-          OF {locations.length}
+          OF {companies.length}
         </div>
         <div className="flex items-center gap-2">
           <Select
@@ -235,26 +237,27 @@ export default function Location() {
           </Button>
         </div>
       </div>
+
       <Sheet open={addSheetOpen} onOpenChange={(open) => {
         if (!open) setAddSheetOpen(false)
       }}>
         <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
-          <AddLocationSheetContent
+          <AddCompanySheetContent
             onClose={() => setAddSheetOpen(false)}
             onSuccess={handleAddSuccess}
           />
         </SheetContent>
       </Sheet>
 
-      <Sheet open={sheetOpen} onOpenChange={(open) => {
-        if (!open) handleClose()
+      <Sheet open={detailSheetOpen} onOpenChange={(open) => {
+        if (!open) handleDetailClose()
       }}>
         <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
-          {selectedLocation && (
-            <LocationSheetContent
-              location={selectedLocation}
-              onClose={handleClose}
-              onSuccess={handleSuccess}
+          {selectedCompany && (
+            <CompanySheetContent
+              company={selectedCompany}
+              onClose={handleDetailClose}
+              onSuccess={handleDetailSuccess}
             />
           )}
         </SheetContent>

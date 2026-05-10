@@ -1,28 +1,13 @@
 import type { Inventory, InventoryView } from '@/types/inventory';
 import type { Product } from '@/types/product';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-if (!API_BASE_URL && import.meta.env.MODE === 'production') {
-  throw new Error('VITE_API_URL environment variable is required for production build');
-}
-
-const API_BASE = API_BASE_URL || 'http://localhost:8080/api/v1';
+import { apiFetch } from '@/lib/api';
 
 export const getAllInventories = async (): Promise<Inventory[]> => {
-  const response = await fetch(`${API_BASE}/inventories`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch inventories');
-  }
-  return response.json();
+  return apiFetch<Inventory[]>('/inventories');
 };
 
 export const getAllProducts = async (): Promise<Product[]> => {
-  const response = await fetch(`${API_BASE}/products`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch products');
-  }
-  return response.json();
+  return apiFetch<Product[]>('/products');
 };
 
 export const getInventoryWithProductDetails = async (): Promise<InventoryView[]> => {
@@ -46,22 +31,23 @@ export const getInventoryWithProductDetails = async (): Promise<InventoryView[]>
 };
 
 export const createInventory = async (inventory: Omit<Inventory, 'inventory_id'>): Promise<Inventory> => {
-  const response = await fetch(`${API_BASE}/inventories`, {
+  return apiFetch<Inventory>('/inventories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(inventory),
   });
-  if (!response.ok) {
-    throw new Error('Failed to create inventory');
-  }
-  return response.json();
 };
 
+export const updateInventory = async (id: number, inventory: { product_id: string; location_id: string; stock: number }): Promise<Inventory> => {
+  return apiFetch<Inventory>(`/inventories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(inventory),
+  })
+}
+
 export const deleteInventory = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_BASE}/inventories/${id}`, {
+  return apiFetch<void>(`/inventories/${id}`, {
     method: 'DELETE',
   });
-  if (!response.ok) {
-    throw new Error('Failed to delete inventory');
-  }
 };

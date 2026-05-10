@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { Search, Plus, Package, X, Trash2 } from 'lucide-react'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { ErrorMessage } from '@/components/ui/error-message'
 import { getAllCompanies } from '@/services/companyService'
 import { getAllSupplierReturns, createSupplierReturn } from '@/services/supplierReturnService'
 import type { ReturnStatus, SupplierReturn } from '@/types/supplierReturn'
@@ -36,6 +37,7 @@ import type { Company } from '@/types/company'
 import type { Product } from '@/types/product'
 import SelectCompanySheet from '@/components/SupplierReturn/SelectCompanySheet'
 import SelectProductsSheet from '@/components/SupplierReturn/SelectProductsSheet'
+import SupplierReturnSheetContent from '@/components/SupplierReturn/SupplierReturnSheetContent'
 
 type SupplierReturnView = SupplierReturn & {
   company_name: string
@@ -153,6 +155,7 @@ export default function SupplierReturns() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | ReturnStatus>('all')
   const [addSheetOpen, setAddSheetOpen] = useState(false)
+  const [selectedReturnId, setSelectedReturnId] = useState<number | null>(null)
   const [selectCompanySheetOpen, setSelectCompanySheetOpen] = useState(false)
   const [selectProductsSheetOpen, setSelectProductsSheetOpen] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
@@ -245,7 +248,11 @@ export default function SupplierReturns() {
       </div>
     )
 
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>
+  if (error) return (
+    <div className="flex items-center justify-center h-full">
+      <ErrorMessage message={error} className="max-w-md text-center" />
+    </div>
+  )
 
   const pageIndex = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
@@ -467,6 +474,7 @@ export default function SupplierReturns() {
                           notes: notes || null,
                           items: selectedItems.map(item => ({
                             product_id: item.product.product_id,
+                            location_id: item.product.location_id,
                             quantity: item.quantity,
                             unit_cost: item.unit_cost,
                           })),
@@ -511,7 +519,7 @@ export default function SupplierReturns() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
+                {table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   No supplier returns found.
@@ -519,7 +527,11 @@ export default function SupplierReturns() {
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedReturnId(row.original.supplier_return_id)}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
@@ -570,6 +582,22 @@ export default function SupplierReturns() {
           </Button>
         </div>
       </div>
+
+      <Sheet open={selectedReturnId !== null} onOpenChange={(open) => {
+        if (!open) setSelectedReturnId(null)
+      }}>
+        <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
+          {selectedReturnId !== null && (
+            <SupplierReturnSheetContent
+              supplierReturnId={selectedReturnId}
+              onClose={() => setSelectedReturnId(null)}
+              onSuccess={() => {
+                getAllSupplierReturns().then(setReturns).catch(console.error)
+              }}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
