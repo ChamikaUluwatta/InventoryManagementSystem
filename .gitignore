@@ -6,8 +6,7 @@ Frontend/node_modules/
 *.local
 
 # Environment files
-/Backend/.env
-/Frontend/.env
+*.env
 
 
 # Go build outputs
