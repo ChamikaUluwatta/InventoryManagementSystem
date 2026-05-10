@@ -19,11 +19,12 @@ import (
 )
 
 type mockService struct {
-	createFunc  func(ctx context.Context, company *model.Company) error
-	getByIDFunc func(ctx context.Context, id uuid.UUID) (*model.Company, error)
-	getAllFunc  func(ctx context.Context, params model.QueryParams) ([]model.Company, error)
-	updateFunc  func(ctx context.Context, company *model.Company) error
-	deleteFunc  func(ctx context.Context, id uuid.UUID) error
+	createFunc                 func(ctx context.Context, company *model.Company) error
+	getByIDFunc                func(ctx context.Context, id uuid.UUID) (*model.Company, error)
+	getAllFunc                 func(ctx context.Context, params model.QueryParams) ([]model.Company, error)
+	updateFunc                 func(ctx context.Context, company *model.Company) error
+	deleteFunc                 func(ctx context.Context, id uuid.UUID) error
+	getCompanyDependenciesFunc func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error)
 }
 
 func (m *mockService) CreateCompany(ctx context.Context, company *model.Company) error {
@@ -40,6 +41,9 @@ func (m *mockService) UpdateCompany(ctx context.Context, company *model.Company)
 }
 func (m *mockService) DeleteCompany(ctx context.Context, id uuid.UUID) error {
 	return m.deleteFunc(ctx, id)
+}
+func (m *mockService) GetCompanyDependencies(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+	return m.getCompanyDependenciesFunc(ctx, id)
 }
 
 func setupHandler(svc service.Service) *http.ServeMux {
@@ -352,6 +356,95 @@ func TestDelete(t *testing.T) {
 		mux := setupHandler(svc)
 
 		req := httptest.NewRequest("DELETE", "/companies/"+uuid.New().String(), nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected 404, got %d", rec.Code)
+		}
+	})
+}
+
+func TestGetCompanyDependencies(t *testing.T) {
+	t.Run("success returns 200 with dependency counts", func(t *testing.T) {
+		expected := model.CompanyDependency{ProductCount: 3, SupplierCount: 2}
+		svc := &mockService{
+			getCompanyDependenciesFunc: func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+				return expected, nil
+			},
+		}
+		mux := setupHandler(svc)
+
+		req := httptest.NewRequest("GET", "/companies/"+uuid.New().String()+"/dependencies", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+
+		var resp model.CompanyDependency
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if resp.ProductCount != 3 {
+			t.Errorf("expected product_count 3, got %d", resp.ProductCount)
+		}
+		if resp.SupplierCount != 2 {
+			t.Errorf("expected supplier_count 2, got %d", resp.SupplierCount)
+		}
+	})
+
+	t.Run("no dependencies returns 200 with zeros", func(t *testing.T) {
+		svc := &mockService{
+			getCompanyDependenciesFunc: func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+				return model.CompanyDependency{}, nil
+			},
+		}
+		mux := setupHandler(svc)
+
+		req := httptest.NewRequest("GET", "/companies/"+uuid.New().String()+"/dependencies", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+
+		var resp model.CompanyDependency
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if resp.ProductCount != 0 {
+			t.Errorf("expected product_count 0, got %d", resp.ProductCount)
+		}
+		if resp.SupplierCount != 0 {
+			t.Errorf("expected supplier_count 0, got %d", resp.SupplierCount)
+		}
+	})
+
+	t.Run("invalid UUID returns 400", func(t *testing.T) {
+		svc := &mockService{}
+		mux := setupHandler(svc)
+
+		req := httptest.NewRequest("GET", "/companies/not-a-uuid/dependencies", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("not found returns 404", func(t *testing.T) {
+		svc := &mockService{
+			getCompanyDependenciesFunc: func(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+				return model.CompanyDependency{}, apperror.NotFound("company not found", nil)
+			},
+		}
+		mux := setupHandler(svc)
+
+		req := httptest.NewRequest("GET", "/companies/"+uuid.New().String()+"/dependencies", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 

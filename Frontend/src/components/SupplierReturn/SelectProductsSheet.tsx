@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Spinner } from '../ui/spinner'
+import { ErrorMessage } from '@/components/ui/error-message'
 
 type SelectedItem = {
   product: Product
@@ -151,9 +152,7 @@ export default function SelectProductsSheet({ open, company, initialItems = [], 
             <p>Loading products for {company.company_name}...</p>
           </div>
         ) : error ? (
-          <div className="m-4 p-3 border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 rounded text-sm text-red-600 dark:text-red-400 font-mono">
-            ERR: {error}
-          </div>
+          <ErrorMessage message={error} />
         ) : products.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />

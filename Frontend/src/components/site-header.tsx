@@ -22,6 +22,7 @@ const breadcrumbConfig: Record<string, { label: string; parent?: { label: string
     '/returns': { label: 'Returns' },
     '/locations': { label: 'Locations' },
     '/categories': { label: 'Categories' },
+    '/companies': { label: 'Companies' }
   }
 
 function generateBreadcrumbs(pathname: string) {

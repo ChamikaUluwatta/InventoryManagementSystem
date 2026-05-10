@@ -65,6 +65,7 @@ func (s ReturnStatus) IsValid() bool {
 }
 
 type QueryParams struct {
-	Limit  int
-	Offset int
+	Limit     int
+	Offset    int
+	CompanyID *uuid.UUID
 }

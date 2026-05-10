@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SectionLabel, EditCell } from '../ui/sheet-label'
+import { ErrorMessage } from '@/components/ui/error-message'
 
 type Props = {
   onClose: () => void
@@ -78,9 +79,7 @@ export default function SelectCompanySheet({ onClose, onSelectCompany }: Props) 
             <p>Loading...</p>
           </div>
         ) : error ? (
-          <div className="m-4 p-3 border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 rounded text-sm text-red-600 dark:text-red-400 font-mono">
-            ERR: {error}
-          </div>
+          <ErrorMessage message={error} />
         ) : (
           <>
             <div>

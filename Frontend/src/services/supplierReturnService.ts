@@ -1,19 +1,16 @@
-import type { ReturnStatus, SupplierReturn, SupplierReturnItem } from '@/types/supplierReturn'
+import type { ReturnStatus, SupplierReturn } from '@/types/supplierReturn'
+import { apiFetch } from '@/lib/api'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-
-if (!API_BASE_URL && import.meta.env.MODE === 'production') {
-  throw new Error('VITE_API_URL environment variable is not set')
+export const getSupplierReturnById = async (id: number): Promise<SupplierReturn> => {
+  return apiFetch<SupplierReturn>(`/supplier-returns/${id}`)
 }
 
-const API_BASE = API_BASE_URL || 'http://localhost:8080/api/v1'
-
 export const getAllSupplierReturns = async (): Promise<SupplierReturn[]> => {
-  const response = await fetch(`${API_BASE}/supplier-returns`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch supplier returns')
-  }
-  return response.json()
+  return apiFetch<SupplierReturn[]>('/supplier-returns')
+}
+
+export const getSupplierReturnsByCompany = async (companyId: string): Promise<SupplierReturn[]> => {
+  return apiFetch<SupplierReturn[]>(`/supplier-returns?company=${encodeURIComponent(companyId)}`)
 }
 
 export interface CreateSupplierReturnRequest {
@@ -21,34 +18,26 @@ export interface CreateSupplierReturnRequest {
   return_no: string
   reason?: string | null
   notes?: string | null
-  items: SupplierReturnItem[]
+  items: { product_id: string; location_id: string; quantity: number; unit_cost: number }[]
 }
 
 export const createSupplierReturn = async (
   data: CreateSupplierReturnRequest,
 ): Promise<SupplierReturn> => {
-  const response = await fetch(`${API_BASE}/supplier-returns`, {
+  return apiFetch<SupplierReturn>('/supplier-returns', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!response.ok) {
-    throw new Error('Failed to create supplier return')
-  }
-  return response.json()
 }
 
 export const updateSupplierReturnStatus = async (
   id: number,
   status: ReturnStatus,
 ): Promise<SupplierReturn> => {
-  const response = await fetch(`${API_BASE}/supplier-returns/${id}/status`, {
+  return apiFetch<SupplierReturn>(`/supplier-returns/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   })
-  if (!response.ok) {
-    throw new Error('Failed to update supplier return status')
-  }
-  return response.json()
 }

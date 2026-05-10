@@ -32,6 +32,7 @@ import { getAllCategories } from '@/services/categoryService'
 import { Spinner } from '@/components/ui/spinner'
 import { Plus, Search } from 'lucide-react'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { ErrorMessage } from '@/components/ui/error-message'
 import ProductSheetContent from '@/components/Product/ProductSheetContent'
 import AddProductSheetContent from '@/components/Product/AddProductSheetContent'
 
@@ -143,7 +144,12 @@ export default function ManageProducts() {
         <p>Loading...</p>
       </div>
     )
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>
+  if (error)
+    return (
+      <div className="flex items-center justify-center h-full">
+        <ErrorMessage message={error} className="max-w-md text-center" />
+      </div>
+    )
 
   return (
     <div className="h-full flex flex-col">

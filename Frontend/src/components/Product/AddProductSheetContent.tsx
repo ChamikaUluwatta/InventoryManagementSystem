@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Package, X } from 'lucide-react'
 import { Spinner } from '../ui/spinner'
 import { SectionLabel, EditLabel, EditCell } from '../ui/sheet-label'
+import { ErrorMessage } from '@/components/ui/error-message'
 import { createInventory } from '@/services/inventoryService'
 import type { InventoryCreateRequest } from '@/types/inventory'
 
@@ -118,13 +119,14 @@ export default function AddProductSheetContent({ onClose, onSuccess }: Props) {
         location_id: locationValue as string,
       }
 
+      const newProduct = await createProduct(createdProduct)
+
       const createdInventory: InventoryCreateRequest = {
         location_id: locationValue?.toString() || 'unassigned',
         stock: data.stock,
-        product_id: '', 
+        product_id: newProduct.product_id,
       }
 
-      await createProduct(createdProduct)
       await createInventory(createdInventory)
       onSuccess()
       onClose()
@@ -146,9 +148,7 @@ export default function AddProductSheetContent({ onClose, onSuccess }: Props) {
 
   if (error && !categories.length) {
     return (
-      <div className="m-4 p-3 border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 rounded text-sm text-red-600 dark:text-red-400 font-mono">
-        ERR: {error}
-      </div>
+      <ErrorMessage message={error} />
     )
   }
 

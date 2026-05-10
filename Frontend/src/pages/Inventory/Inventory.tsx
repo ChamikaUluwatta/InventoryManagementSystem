@@ -28,6 +28,10 @@ import {
 import type { InventoryView } from '@/types/inventory'
 import { getInventoryWithProductDetails } from '@/services/inventoryService'
 import { Spinner } from '@/components/ui/spinner'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { ErrorMessage } from '@/components/ui/error-message'
+import AddInventorySheetContent from '@/components/Inventory/AddInventorySheetContent'
+import InventorySheetContent from '@/components/Inventory/InventorySheetContent'
 import { Search, Plus } from 'lucide-react'
 
 const columns: ColumnDef<InventoryView>[] = [
@@ -54,6 +58,9 @@ export default function Inventory() {
   const [error, setError] = useState<string | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [addSheetOpen, setAddSheetOpen] = useState(false)
+  const [selectedInventory, setSelectedInventory] = useState<InventoryView | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
     const fetchInventories = async () => {
@@ -69,6 +76,24 @@ export default function Inventory() {
 
     fetchInventories()
   }, [])
+
+  const handleRowClick = (inventory: InventoryView) => {
+    setSelectedInventory(inventory)
+    setSheetOpen(true)
+  }
+
+  const handleAddSuccess = () => {
+    getInventoryWithProductDetails().then(setInventories).catch(console.error)
+  }
+
+  const handleSuccess = () => {
+    getInventoryWithProductDetails().then(setInventories).catch(console.error)
+  }
+
+  const handleClose = () => {
+    setSheetOpen(false)
+    setSelectedInventory(null)
+  }
 
   const table = useReactTable({
     data: inventories,
@@ -92,7 +117,11 @@ export default function Inventory() {
         <p>Loading...</p>
       </div>
     )
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>
+  if (error) return (
+    <div className="flex items-center justify-center h-full">
+      <ErrorMessage message={error} className="max-w-md text-center" />
+    </div>
+  )
 
   return (
     <div className="h-full flex flex-col">
@@ -108,7 +137,7 @@ export default function Inventory() {
               className="pl-9 w-48 font-mono text-xs uppercase"
             />
           </div>
-          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs">
+          <Button variant="outline" size="sm" className="gap-2 font-mono text-xs" onClick={() => setAddSheetOpen(true)}>
             <Plus className="h-4 w-4" />
             ADD
           </Button>
@@ -148,7 +177,11 @@ export default function Inventory() {
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => handleRowClick(row.original)}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -207,6 +240,30 @@ export default function Inventory() {
           </Button>
         </div>
       </div>
+      <Sheet open={addSheetOpen} onOpenChange={(open) => {
+        if (!open) setAddSheetOpen(false)
+      }}>
+        <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
+          <AddInventorySheetContent
+            onClose={() => setAddSheetOpen(false)}
+            onSuccess={handleAddSuccess}
+          />
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={sheetOpen} onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}>
+        <SheetContent className="w-100 sm:w-125 md:w-150 lg:w-175 xl:w-200 max-w-[90vw]">
+          {selectedInventory && (
+            <InventorySheetContent
+              inventory={selectedInventory}
+              onClose={handleClose}
+              onSuccess={handleSuccess}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

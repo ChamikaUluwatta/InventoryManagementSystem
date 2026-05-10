@@ -15,6 +15,7 @@ type Service interface {
 	GetAllCompanies(ctx context.Context, params model.QueryParams) ([]model.Company, error)
 	UpdateCompany(ctx context.Context, company *model.Company) error
 	DeleteCompany(ctx context.Context, id uuid.UUID) error
+	GetCompanyDependencies(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error)
 }
 
 type service struct {
@@ -53,4 +54,8 @@ func (s *service) UpdateCompany(ctx context.Context, company *model.Company) err
 
 func (s *service) DeleteCompany(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *service) GetCompanyDependencies(ctx context.Context, id uuid.UUID) (model.CompanyDependency, error) {
+	return s.repo.GetCompanyDependencies(ctx, id)
 }

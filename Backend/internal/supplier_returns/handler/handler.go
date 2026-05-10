@@ -8,6 +8,7 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/supplier_returns/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/supplier_returns/service"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -124,6 +125,11 @@ func parseQueryParams(r *http.Request) model.QueryParams {
 	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 		if offset, err := strconv.Atoi(offsetStr); err == nil {
 			params.Offset = offset
+		}
+	}
+	if companyStr := r.URL.Query().Get("company"); companyStr != "" {
+		if companyID, err := uuid.Parse(companyStr); err == nil {
+			params.CompanyID = &companyID
 		}
 	}
 	return params

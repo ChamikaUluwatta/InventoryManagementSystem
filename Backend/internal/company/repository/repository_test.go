@@ -216,3 +216,59 @@ func TestDelete(t *testing.T) {
 		}
 	})
 }
+
+func TestGetCompanyDependencies(t *testing.T) {
+	repo := repository.NewRepository(testDB.Pool)
+
+	company := model.Company{
+		CompanyName: "Test Company",
+	}
+	if err := repo.Create(t.Context(), &company); err != nil {
+		t.Fatalf("failed to create company: %v", err)
+	}
+	companyZeroDeps := model.Company{
+		CompanyName: "Zero Deps Company",
+	}
+	if err := repo.Create(t.Context(), &companyZeroDeps); err != nil {
+		t.Fatalf("failed to create company: %v", err)
+	}
+	var categoryID int
+	if err := testDB.Pool.QueryRow(t.Context(), `INSERT INTO "categories" (category_name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING category_id`, "Test Category").Scan(&categoryID); err != nil {
+		t.Fatalf("failed to create category dependency: %v", err)
+	}
+
+	if _, err := testDB.Pool.Exec(t.Context(), `INSERT INTO "products" (product_name,company_id,category_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, "Test Product", company.CompanyID, categoryID); err != nil {
+		t.Fatalf("failed to create product dependency: %v", err)
+	}
+
+	if _, err := testDB.Pool.Exec(t.Context(), `INSERT INTO "supplier_returns" (return_no,company_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, "Test Return", company.CompanyID); err != nil {
+		t.Fatalf("failed to create supplier return dependency: %v", err)
+	}
+
+	t.Run("Get dependencies when exist", func(t *testing.T) {
+		got, err := repo.GetCompanyDependencies(t.Context(), company.CompanyID)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if got.ProductCount != 1 {
+			t.Errorf("expected 1 product, got %d", got.ProductCount)
+		}
+		if got.SupplierCount != 1 {
+			t.Errorf("expected 1 supplier, got %d", got.SupplierCount)
+		}
+	})
+
+	t.Run("Get zero count when No Dependencies", func(t *testing.T) {
+		got, err := repo.GetCompanyDependencies(t.Context(), companyZeroDeps.CompanyID)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if got.ProductCount != 0 {
+			t.Errorf("expected 0 products, got %d", got.ProductCount)
+		}
+		if got.SupplierCount != 0 {
+			t.Errorf("expected 0 suppliers, got %d", got.SupplierCount)
+		}
+	})
+
+}

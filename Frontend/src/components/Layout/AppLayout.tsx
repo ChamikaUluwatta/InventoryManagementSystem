@@ -13,10 +13,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     <TooltipProvider>
       <div className="[--header-height:calc(--spacing(14))]">
       <SidebarProvider className="flex flex-col">
-        <SiteHeader />
         <div className="flex flex-1">
           <AppSidebar />
           <SidebarInset>
+            <SiteHeader />
             <div className="h-full w-full rounded-lg border bg-background p-4">
               {children}
             </div>

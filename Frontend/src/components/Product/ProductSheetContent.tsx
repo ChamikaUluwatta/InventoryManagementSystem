@@ -34,6 +34,7 @@ import {
 import { Pencil, Trash2, X, Package } from 'lucide-react'
 import { Spinner } from '../ui/spinner'
 import { SectionLabel, EditLabel, EditCell, DataCell } from '../ui/sheet-label'
+import { ErrorMessage } from '@/components/ui/error-message'
 
 type Props = {
   product: Product
@@ -200,9 +201,7 @@ export default function ProductSheetContent({ product, onClose, onSuccess }: Pro
 
   if (error) {
     return (
-      <div className="m-4 p-3 border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 rounded text-sm text-red-600 dark:text-red-400 font-mono">
-        ERR: {error}
-      </div>
+      <ErrorMessage message={error} />
     )
   }
 

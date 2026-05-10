@@ -19,6 +19,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { X, Package, Plus, Trash2 } from 'lucide-react'
 import { SectionLabel, EditLabel, EditCell } from '../ui/sheet-label'
+import { ErrorMessage } from '@/components/ui/error-message'
 
 type Props = {
   onClose: () => void
@@ -90,7 +91,10 @@ export default function AddSupplierReturnSheetContent({ onClose, onSuccess }: Pr
         return_no: data.return_no,
         reason: data.reason || null,
         notes: data.notes || null,
-        items: data.items,
+        items: data.items.map(item => ({
+          ...item,
+          location_id: products.find(p => p.product_id === item.product_id)?.location_id || 'unassigned',
+        })),
       })
       onSuccess()
       onClose()
@@ -112,9 +116,7 @@ export default function AddSupplierReturnSheetContent({ onClose, onSuccess }: Pr
 
   if (error && !companies.length) {
     return (
-      <div className="m-4 p-3 border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 rounded text-sm text-red-600 dark:text-red-400 font-mono">
-        ERR: {error}
-      </div>
+      <ErrorMessage message={error} />
     )
   }
 
@@ -144,11 +146,7 @@ export default function AddSupplierReturnSheetContent({ onClose, onSuccess }: Pr
 
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         <form id="supplier-return-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          {error && (
-            <div className="p-3 border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 rounded text-sm text-red-600 dark:text-red-400 font-mono">
-              {error}
-            </div>
-          )}
+          {error && <ErrorMessage message={error} />}
 
           <div>
             <SectionLabel>Return Details</SectionLabel>

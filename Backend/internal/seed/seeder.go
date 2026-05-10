@@ -36,7 +36,7 @@ type inventoryCreator interface {
 func seedCompaniesFn(ctx context.Context, creator companyCreator, seeds []companySeed) ([]companyModel.Company, error) {
 	var created []companyModel.Company
 	for _, s := range seeds {
-		company := companyModel.Company{CompanyName: s.Name}
+		company := companyModel.Company{CompanyName: s.Name, Description: s.Description}
 		if err := creator.Create(ctx, &company); err != nil {
 			log.Printf("Failed to create company %q: %v", s.Name, err)
 			continue
