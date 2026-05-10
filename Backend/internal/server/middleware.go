@@ -41,7 +41,7 @@ func Logger(next http.Handler) http.Handler {
 }
 
 func CheckCORS(next http.Handler) http.Handler {
-	allowedMethods := []string{"GET", "DELETE", "PUT", "POST", "OPTIONS"}
+	allowedMethods := []string{"GET", "DELETE", "PUT", "POST", "PATCH", "OPTIONS"}
 
 	allowedOrigins := []string{
 		"http://localhost:5173",
