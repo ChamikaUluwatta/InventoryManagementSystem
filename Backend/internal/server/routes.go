@@ -10,6 +10,8 @@ import (
 	companyHandler "github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/handler"
 	companyRepo "github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/repository"
 	companySvc "github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/service"
+	healthHandler "github.com/ChamikaUluwatta/Inventory_Management_System/internal/health/handler"
+	healthSvc "github.com/ChamikaUluwatta/Inventory_Management_System/internal/health/service"
 	inventoryHandler "github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/handler"
 	inventoryRepo "github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/repository"
 	inventorySvc "github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/service"
@@ -53,6 +55,10 @@ func SetupRoutes(mux *http.ServeMux, db *pgxpool.Pool, seedEnabled bool) {
 	supplierReturnsService := supplierReturnsSvc.NewService(supplierReturnsRepoInstance)
 	supplierReturnsHandlerInstance := supplierReturnsHandler.NewHandler(supplierReturnsService)
 
+	dbChecker := healthSvc.NewDatabaseHealthChecker(db)
+	healthService := healthSvc.NewService(dbChecker)
+	healthHandlerInstance := healthHandler.NewHandler(healthService)
+
 	if seedEnabled {
 		fmt.Println("Seed endpoint is registered.")
 		seedService := seed.NewService(companyRepoInstance, categoryRepoInstance, locationRepoInstance, productRepoInstance, inventoryRepoInstance, db)
@@ -66,4 +72,5 @@ func SetupRoutes(mux *http.ServeMux, db *pgxpool.Pool, seedEnabled bool) {
 	locationHandlerInstance.RegisterRoutes(mux)
 	inventoryHandlerInstance.RegisterRoutes(mux)
 	supplierReturnsHandlerInstance.RegisterRoutes(mux)
+	healthHandlerInstance.RegisterRoutes(mux)
 }
