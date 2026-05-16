@@ -17,3 +17,6 @@ app:
     expiration-ms: 86400000
   inventory:
     service-url: ${IMS_URL}
+  auth:
+    client-id: ${AUTH_CLIENT_ID}
+    redirect-uri: ${AUTH_REDIRECT_URI}

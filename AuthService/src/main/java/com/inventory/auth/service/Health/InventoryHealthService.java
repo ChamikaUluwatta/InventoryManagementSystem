@@ -7,7 +7,7 @@ import org.springframework.web.client.RestClient;
 @Component
 public class InventoryHealthService {
     private final RestClient restClient;
-    public InventoryHealthService(@Value("${IMS_URL}") String inventoryServiceUrl) {
+    public InventoryHealthService(@Value("${app.inventory.service-url}") String inventoryServiceUrl) {
         this.restClient = RestClient.builder().baseUrl(inventoryServiceUrl).build();
     }
     public boolean checkInventoryHealth() {
