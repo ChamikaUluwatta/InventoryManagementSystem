@@ -27,13 +27,16 @@ public class User {
 
     private String password;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", insertable = false, updatable = false)
     private Instant updatedAt;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @Column(name = "permissions_version")
+    private Integer permissionsVersion = 1;
+
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "user_roles",
         joinColumns = @JoinColumn(name = "user_id"),
