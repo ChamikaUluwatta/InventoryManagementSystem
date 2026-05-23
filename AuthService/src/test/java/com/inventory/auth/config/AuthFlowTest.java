@@ -72,6 +72,7 @@ class AuthFlowTest {
 
     @BeforeEach
     void seedData() {
+        cleanUp();
         jdbcTemplate.update("INSERT INTO roles (name) VALUES (?)", "ADMIN");
         jdbcTemplate.update("INSERT INTO roles (name) VALUES (?)", "VIEWER");
         jdbcTemplate.update("INSERT INTO permissions (name) VALUES (?)", "products:read");
@@ -81,8 +82,6 @@ class AuthFlowTest {
                 "SELECT r.id, p.id FROM roles r, permissions p WHERE r.name = 'ADMIN'");
 
         testUser = authService.createUser("test@example.com", "password123");
-        jdbcTemplate.update("INSERT INTO user_roles (user_id, role_id) " +
-                "SELECT ?, r.id FROM roles r WHERE r.name = 'ADMIN'", testUser.getId());
     }
 
     @AfterEach

@@ -1,6 +1,7 @@
 package com.inventory.auth.service.Auth;
 
 import com.inventory.auth.exception.CustomAuthException;
+import com.inventory.auth.model.Role;
 import com.inventory.auth.model.User;
 import com.inventory.auth.repository.RoleRepository;
 import com.inventory.auth.repository.UserRepository;
@@ -42,12 +43,18 @@ public class AuthServiceTests {
         savedUser.setPassword(encodedPassword);
         when(userRepository.saveAndFlush(any(User.class))).thenReturn(savedUser);
 
+        Role adminRole = new Role("ADMIN");
+        adminRole.setId(1);
+        when(roleRepository.findByName("ADMIN")).thenReturn(java.util.Optional.of(adminRole));
+
         User result = authService.createUser(email, rawPassword);
 
         assertEquals(email, result.getEmail());
         assertEquals(encodedPassword, result.getPassword());
         verify(passwordEncoder).encode(rawPassword);
         verify(userRepository).saveAndFlush(any(User.class));
+        verify(roleRepository).findByName("ADMIN");
+        verify(userRepository).addRoleToUser(savedUser.getId(), 1);
     }
 
     @Test

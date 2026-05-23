@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.inventory.auth.dto.TokenResponse;
 import com.inventory.auth.exception.CustomAuthException;
+import com.inventory.auth.model.Role;
 import com.inventory.auth.model.User;
 import com.inventory.auth.repository.RoleRepository;
 import com.inventory.auth.repository.UserRepository;
@@ -39,12 +40,18 @@ public class AuthService {
         this.tokenRevocationService = tokenRevocationService;
     }
 
+    @Transactional
     public User createUser(String email, String rawPassword) {
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(rawPassword));
         try {
             User savedUser = userRepository.saveAndFlush(user);
+
+            Role adminRole = roleRepository.findByName("ADMIN")
+                    .orElseThrow(() -> new IllegalStateException("ADMIN role not found"));
+            userRepository.addRoleToUser(savedUser.getId(), adminRole.getId());
+
             return savedUser;
         } catch (DataIntegrityViolationException e) {
             throw new CustomAuthException(409, "An account with this email already exists");
