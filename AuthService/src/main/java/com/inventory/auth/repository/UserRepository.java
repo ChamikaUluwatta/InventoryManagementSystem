@@ -18,8 +18,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
 	Optional<User> findByEmail(String email);
 
-	boolean existsByEmail(String email);
-
 	@Query(
 		value = """
 			SELECT DISTINCT p.name

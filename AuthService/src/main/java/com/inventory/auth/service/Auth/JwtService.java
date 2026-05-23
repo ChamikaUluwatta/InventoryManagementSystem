@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -62,29 +61,6 @@ public class JwtService {
 
     public long getAccessTokenExpirationMs() {
         return accessTokenExpirationMs;
-    }
-
-    public JWTClaimsSet validateAndParse(String token) {
-        try {
-            SignedJWT signedJWT = SignedJWT.parse(token);
-            RSASSAVerifier verifier = new RSASSAVerifier(publicKey);
-
-            if (!signedJWT.verify(verifier)) {
-                throw new RuntimeException("Invalid token signature");
-            }
-
-            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
-
-            if (claims.getExpirationTime().before(new Date())) {
-                throw new RuntimeException("Token has expired");
-            }
-
-            return claims;
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid token", e);
-        }
     }
 
     private String signToken(JWTClaimsSet claims) {

@@ -14,6 +14,8 @@ public class TokenRevocationService {
     private static final String ACTIVE_TOKEN_PREFIX = "refresh:active:";
     private static final String REVOKED_TOKEN_PREFIX = "refresh:revoked:";
     private static final String PERMISSION_VERSION_PREFIX = "auth:user:version:";
+    /*we can use only refresh:active here instead of using both active and revoked but decision is to keep both for clarity 
+    in future we can track the usage of each token*/
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -55,14 +57,15 @@ public class TokenRevocationService {
         redisTemplate.opsForValue().set(revokedKey, "1", Duration.ofMillis(ttlMs));
     }
 
+    public void deleteRefreshToken(String token) {
+        String activeKey = ACTIVE_TOKEN_PREFIX + token;
+
+        redisTemplate.delete(activeKey);
+    }
+
     public boolean isRevoked(String token) {
         String key = REVOKED_TOKEN_PREFIX + token;
         return Boolean.TRUE.equals(redisTemplate.hasKey(key));
-    }
-
-    public void deleteRefreshToken(String token) {
-        String key = ACTIVE_TOKEN_PREFIX + token;
-        redisTemplate.delete(key);
     }
 
     public void setPermissionVersion(UUID userId, Integer version) {

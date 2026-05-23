@@ -16,7 +16,6 @@ import com.inventory.auth.model.User;
 import com.inventory.auth.repository.RoleRepository;
 import com.inventory.auth.repository.UserRepository;
 import com.inventory.auth.service.Auth.TokenRevocationService.RefreshTokenData;
-import com.nimbusds.jwt.JWTClaimsSet;
 
 @Service
 public class AuthService {
@@ -78,7 +77,7 @@ public class AuthService {
                 permissions);
     }
 
-    public TokenResponse refresh(String refreshToken) {
+    public TokenResponse refresh(String refreshToken, String newRefreshToken) {
         if (tokenRevocationService.isRevoked(refreshToken)) {
             throw new CustomAuthException(401, "Your session has expired, please log in again");
         }
@@ -91,7 +90,12 @@ public class AuthService {
         Set<String> permissions = userRepository.findPermissionNamesByEmail(data.email());
         Integer permissionsVersion = userRepository.getPermissionsVersion(data.userId());
         String accessToken = jwtService.generateAccessToken(data.userId(), data.email(), permissions, permissionsVersion);
-
+        tokenRevocationService.storeRefreshToken(
+                newRefreshToken,
+                data.userId(),
+                data.email(),
+                jwtService.getRefreshTokenExpirationMs());
+        tokenRevocationService.revokeRefreshToken(refreshToken, jwtService.getRefreshTokenExpirationMs());
         return new TokenResponse(
                 accessToken,
                 "Bearer",
@@ -102,14 +106,6 @@ public class AuthService {
 
     public void revokeRefreshToken(String refreshToken) {
         tokenRevocationService.revokeRefreshToken(refreshToken, jwtService.getRefreshTokenExpirationMs());
-    }
-
-    public void deleteRefreshToken(String refreshToken) {
-        tokenRevocationService.deleteRefreshToken(refreshToken);
-    }
-
-    public JWTClaimsSet validateAccessToken(String token) {
-        return jwtService.validateAndParse(token);
     }
 
     public String generateRefreshToken() {

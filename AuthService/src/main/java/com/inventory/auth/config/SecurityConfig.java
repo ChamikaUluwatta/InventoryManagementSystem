@@ -38,7 +38,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // TODO: Persist RSA keys securely 
+    // TODO: Persist RSA keys securely
+    @Bean
     public KeyPair rsaKeyPair() {
         try {
             KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
