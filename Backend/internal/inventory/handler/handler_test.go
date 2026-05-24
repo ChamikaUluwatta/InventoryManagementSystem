@@ -53,7 +53,7 @@ func setupHandler(svc service.Service) *chi.Mux {
 				UserID: "test-user",
 				Email:              "test.com",
 				Permissions:        []string{"inventories:read", "inventories:write"},
-				PermissionsVersion: 1,
+				JwtVersion: 1,
 			}
 			ctx := auth.ContextWithClaims(r.Context(), claims)
 			next.ServeHTTP(w, r.WithContext(ctx))

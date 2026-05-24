@@ -8,8 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const permissionVersionPrefix = "auth:user:version:"
-const revokedTokensPrefix = "refresh:revoked:"
+const jwtVersionPrefix = "auth:user:jwt:version:"
 
 type RedisClient struct {
 	client *redis.Client
@@ -23,29 +22,19 @@ func NewRedisClient(host, port string) *RedisClient {
 	return &RedisClient{client: client}
 }
 
-func (r *RedisClient) CheckRefreshTokenRevokation(refreshToken string) bool {
-	key := revokedTokensPrefix + refreshToken
-	val := r.client.Get(context.Background(), key)
-
-	if val != nil {
-		return true
-	}
-	return false
-}
-
-func (r *RedisClient) GetPermissionVersion(userID string) (int, error) {
-	key := permissionVersionPrefix + userID
+func (r *RedisClient) GetJwtVersion(userID string) (int, error) {
+	key := jwtVersionPrefix + userID
 	val, err := r.client.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		return 0, nil
 	}
 	if err != nil {
-		return 0, fmt.Errorf("failed to get permission version: %w", err)
+		return 0, fmt.Errorf("failed to get jwt version: %w", err)
 	}
 
 	version, err := strconv.Atoi(val)
 	if err != nil {
-		return 0, fmt.Errorf("invalid permission version value: %w", err)
+		return 0, fmt.Errorf("invalid jwt version value: %w", err)
 	}
 
 	return version, nil

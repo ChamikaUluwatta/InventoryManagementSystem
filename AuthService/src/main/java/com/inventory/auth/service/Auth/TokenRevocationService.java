@@ -13,7 +13,7 @@ public class TokenRevocationService {
 
     private static final String ACTIVE_TOKEN_PREFIX = "refresh:active:";
     private static final String REVOKED_TOKEN_PREFIX = "refresh:revoked:";
-    private static final String PERMISSION_VERSION_PREFIX = "auth:user:version:";
+    private static final String JWT_VERSION_PREFIX = "auth:user:jwt:version:";
     /*we can use only refresh:active here instead of using both active and revoked but decision is to keep both for clarity 
     in future we can track the usage of each token*/
 
@@ -68,9 +68,19 @@ public class TokenRevocationService {
         return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
 
-    public void setPermissionVersion(UUID userId, Integer version) {
-        String key = PERMISSION_VERSION_PREFIX + userId.toString();
-        redisTemplate.opsForValue().set(key, version.toString());
+    public Integer getJwtVersion(UUID userId) {
+        String key = JWT_VERSION_PREFIX + userId.toString();
+        String value = redisTemplate.opsForValue().get(key);
+        if (value == null) {
+            redisTemplate.opsForValue().set(key, "1");
+            return 1;
+        }
+        return Integer.parseInt(value);
+    }
+
+    public void incrementJwtVersion(UUID userId) {
+        String key = JWT_VERSION_PREFIX + userId.toString();
+        redisTemplate.opsForValue().increment(key);
     }
 
     public record RefreshTokenData(UUID userId, String email) {}

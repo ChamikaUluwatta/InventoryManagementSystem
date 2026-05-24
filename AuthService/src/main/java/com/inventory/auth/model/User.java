@@ -33,9 +33,6 @@ public class User {
     @Column(name = "updated_at", insertable = false, updatable = false)
     private Instant updatedAt;
 
-    @Column(name = "permissions_version")
-    private Integer permissionsVersion = 1;
-
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "user_roles",

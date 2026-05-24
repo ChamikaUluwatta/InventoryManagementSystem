@@ -67,8 +67,8 @@ public class AuthService {
         }
 
         Set<String> permissions = userRepository.findPermissionNamesByEmail(email);
-        Integer permissionsVersion = user.getPermissionsVersion();
-        String accessToken = jwtService.generateAccessToken(user.getId(), email, permissions, permissionsVersion);
+        Integer jwtVersion = tokenRevocationService.getJwtVersion(user.getId());
+        String accessToken = jwtService.generateAccessToken(user.getId(), email, permissions, jwtVersion);
 
         tokenRevocationService.storeRefreshToken(
                 refreshToken,
@@ -95,8 +95,8 @@ public class AuthService {
         }
 
         Set<String> permissions = userRepository.findPermissionNamesByEmail(data.email());
-        Integer permissionsVersion = userRepository.getPermissionsVersion(data.userId());
-        String accessToken = jwtService.generateAccessToken(data.userId(), data.email(), permissions, permissionsVersion);
+        Integer jwtVersion = tokenRevocationService.getJwtVersion(data.userId());
+        String accessToken = jwtService.generateAccessToken(data.userId(), data.email(), permissions, jwtVersion);
         tokenRevocationService.storeRefreshToken(
                 newRefreshToken,
                 data.userId(),
@@ -112,6 +112,10 @@ public class AuthService {
     }
 
     public void revokeRefreshToken(String refreshToken) {
+        RefreshTokenData data = tokenRevocationService.getRefreshTokenData(refreshToken);
+        if (data != null) {
+            tokenRevocationService.incrementJwtVersion(data.userId());
+        }
         tokenRevocationService.revokeRefreshToken(refreshToken, jwtService.getRefreshTokenExpirationMs());
     }
 
@@ -126,13 +130,13 @@ public class AuthService {
     @Transactional
     public void assignRoleToUser(UUID userId, Integer roleId) {
         userRepository.addRoleToUser(userId, roleId);
-        incrementAndBroadcastVersion(userId);
+        tokenRevocationService.incrementJwtVersion(userId);
     }
 
     @Transactional
     public void removeRoleFromUser(UUID userId, Integer roleId) {
         userRepository.removeRoleFromUser(userId, roleId);
-        incrementAndBroadcastVersion(userId);
+        tokenRevocationService.incrementJwtVersion(userId);
     }
 
     @Transactional
@@ -147,20 +151,9 @@ public class AuthService {
         incrementVersionForAllUsersWithRole(roleId);
     }
 
-    private void incrementAndBroadcastVersion(UUID userId) {
-        userRepository.incrementPermissionsVersion(userId);
-        Integer newVersion = userRepository.getPermissionsVersion(userId);
-        tokenRevocationService.setPermissionVersion(userId, newVersion);
-    }
-
-    //need to look if this is good pattern
     private void incrementVersionForAllUsersWithRole(Integer roleId) {
-        userRepository.incrementPermissionsVersionForUsersWithRole(roleId);
-        List<Object[]> users = userRepository.findUsersWithRole(roleId);
-        for (Object[] row : users) {
-            UUID userId = (UUID) row[0];
-            Integer version = (Integer) row[1];
-            tokenRevocationService.setPermissionVersion(userId, version);
+        for (UUID userId : userRepository.findUsersWithRole(roleId)) {
+            tokenRevocationService.incrementJwtVersion(userId);
         }
     }
 }

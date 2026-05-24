@@ -27,7 +27,7 @@ func createTestJWT(privateKey *rsa.PrivateKey, claims Claims, exp time.Time) (st
 		"sub":                 claims.UserID,
 		"email":               claims.Email,
 		"permissions":         claims.Permissions,
-		"permissions_version": claims.PermissionsVersion,
+		"jwt_version": claims.JwtVersion,
 		"iat":                 time.Now().Unix(),
 		"exp":                 exp.Unix(),
 	})
@@ -82,7 +82,7 @@ func TestParseAndValidate_ValidToken(t *testing.T) {
 		UserID:             "test-user-id",
 		Email:              "test@example.com",
 		Permissions:        []string{"products:read", "products:write"},
-		PermissionsVersion: 1,
+		JwtVersion: 1,
 	}
 
 	token, err := createTestJWT(privateKey, claims, time.Now().Add(15*time.Minute))
@@ -102,8 +102,8 @@ func TestParseAndValidate_ValidToken(t *testing.T) {
 	if parsed.Email != claims.Email {
 		t.Errorf("Expected Email %s, got %s", claims.Email, parsed.Email)
 	}
-	if parsed.PermissionsVersion != claims.PermissionsVersion {
-		t.Errorf("Expected PermissionsVersion %d, got %d", claims.PermissionsVersion, parsed.PermissionsVersion)
+	if parsed.JwtVersion != claims.JwtVersion {
+		t.Errorf("Expected JwtVersion %d, got %d", claims.JwtVersion, parsed.JwtVersion)
 	}
 }
 
@@ -122,7 +122,7 @@ func TestParseAndValidate_ExpiredToken(t *testing.T) {
 		UserID:             "test-user-id",
 		Email:              "test@example.com",
 		Permissions:        []string{"products:read"},
-		PermissionsVersion: 1,
+		JwtVersion: 1,
 	}
 
 	token, err := createTestJWT(privateKey, claims, time.Now().Add(-1*time.Hour))
@@ -156,7 +156,7 @@ func TestParseAndValidate_InvalidSignature(t *testing.T) {
 		UserID:             "test-user-id",
 		Email:              "test@example.com",
 		Permissions:        []string{"products:read"},
-		PermissionsVersion: 1,
+		JwtVersion: 1,
 	}
 
 	token, err := createTestJWT(privateKey, claims, time.Now().Add(15*time.Minute))
@@ -204,10 +204,10 @@ func TestValidateClaims(t *testing.T) {
 		claims  Claims
 		wantErr bool
 	}{
-		{"valid claims", Claims{UserID: "id", Email: "email", PermissionsVersion: 1}, false},
-		{"missing user id", Claims{Email: "email", PermissionsVersion: 1}, true},
-		{"missing email", Claims{UserID: "id", PermissionsVersion: 1}, true},
-		{"invalid version", Claims{UserID: "id", Email: "email", PermissionsVersion: 0}, true},
+		{"valid claims", Claims{UserID: "id", Email: "email", JwtVersion: 1}, false},
+		{"missing user id", Claims{Email: "email", JwtVersion: 1}, true},
+		{"missing email", Claims{UserID: "id", JwtVersion: 1}, true},
+		{"invalid version", Claims{UserID: "id", Email: "email", JwtVersion: 0}, true},
 	}
 
 	for _, tt := range tests {

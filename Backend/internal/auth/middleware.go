@@ -28,7 +28,7 @@ func JWTAuth(jwks *JWKSCache) func(http.Handler) http.Handler {
 	}
 }
 
-func PermissionCheck(redis *RedisClient) func(http.Handler) http.Handler {
+func VersionCheck(redis *RedisClient) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims := GetClaimsFromContext(r.Context())
@@ -37,14 +37,14 @@ func PermissionCheck(redis *RedisClient) func(http.Handler) http.Handler {
 				return
 			}
 
-			redisVersion, err := redis.GetPermissionVersion(claims.UserID)
+			redisVersion, err := redis.GetJwtVersion(claims.UserID)
 			if err != nil {
 				apperror.HandlerespondUnauthorized(w, "Unable to verify claims")
 				return
 			}
 
-			if redisVersion > 0 && redisVersion > claims.PermissionsVersion {
-				apperror.HandlerespondUnauthorized(w, "Permissions changed, please refresh your token")
+			if redisVersion > 0 && redisVersion > claims.JwtVersion {
+				apperror.HandlerespondUnauthorized(w, "Token version is outdated, please refresh your token")
 				return
 			}
 
@@ -67,19 +67,6 @@ func RequirePermission(permission string) func(http.Handler) http.Handler {
 				return
 			}
 
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func RevokedUserCheck(redis *RedisClient, refreshToken string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			isRevoked := redis.CheckRefreshTokenRevokation(refreshToken)
-			if isRevoked {
-				apperror.HandlerespondUnauthorized(w, "Refresh token has been revoked")
-				return
-			}
 			next.ServeHTTP(w, r)
 		})
 	}

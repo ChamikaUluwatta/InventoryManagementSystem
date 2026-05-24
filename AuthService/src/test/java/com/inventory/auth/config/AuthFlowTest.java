@@ -238,20 +238,15 @@ class AuthFlowTest {
 
         String accessToken = objectMapper.readTree(response).get("accessToken").asText();
 
-        // Parse the JWT to verify permissions_version claim
+        // Parse the JWT to verify jwt_version claim
         String[] parts = accessToken.split("\\.");
         String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
-        assertThat(payload).contains("permissions_version");
-        assertThat(payload).contains("\"permissions_version\":1");
+        assertThat(payload).contains("jwt_version");
+        assertThat(payload).contains("\"jwt_version\":1");
     }
 
     @Test
-    void assignRoleIncrementsPermissionVersion() throws Exception {
-        // Get initial version
-        Integer initialVersion = jdbcTemplate.queryForObject(
-                "SELECT permissions_version FROM users WHERE id = ?",
-                Integer.class, testUser.getId());
-        assertThat(initialVersion).isEqualTo(1);
+    void assignRoleIncrementsJwtVersion() throws Exception {
 
         // Get VIEWER role ID
         Integer viewerRoleId = jdbcTemplate.queryForObject(
@@ -261,19 +256,13 @@ class AuthFlowTest {
         // Assign role
         authService.assignRoleToUser(testUser.getId(), viewerRoleId);
 
-        // Verify version incremented
-        Integer newVersion = jdbcTemplate.queryForObject(
-                "SELECT permissions_version FROM users WHERE id = ?",
-                Integer.class, testUser.getId());
-        assertThat(newVersion).isEqualTo(2);
-
-        // Verify version written to Redis
-        String redisVersion = redisTemplate.opsForValue().get("auth:user:version:" + testUser.getId());
+        // Verify version incremented in Redis
+        String redisVersion = redisTemplate.opsForValue().get("auth:user:jwt:version:" + testUser.getId());
         assertThat(redisVersion).isEqualTo("2");
     }
 
     @Test
-    void removeRoleIncrementsPermissionVersion() throws Exception {
+    void removeRoleIncrementsJwtVersion() throws Exception {
         // Get VIEWER role ID
         Integer viewerRoleId = jdbcTemplate.queryForObject(
                 "SELECT id FROM roles WHERE name = 'VIEWER'",
@@ -283,14 +272,8 @@ class AuthFlowTest {
         authService.assignRoleToUser(testUser.getId(), viewerRoleId);
         authService.removeRoleFromUser(testUser.getId(), viewerRoleId);
 
-        // Verify version incremented twice
-        Integer newVersion = jdbcTemplate.queryForObject(
-                "SELECT permissions_version FROM users WHERE id = ?",
-                Integer.class, testUser.getId());
-        assertThat(newVersion).isEqualTo(3);
-
-        // Verify version written to Redis
-        String redisVersion = redisTemplate.opsForValue().get("auth:user:version:" + testUser.getId());
+        // Verify version incremented in Redis
+        String redisVersion = redisTemplate.opsForValue().get("auth:user:jwt:version:" + testUser.getId());
         assertThat(redisVersion).isEqualTo("3");
     }
 
@@ -311,18 +294,12 @@ class AuthFlowTest {
         authService.addPermissionToRole(adminRoleId, permissionId);
 
         // Verify version incremented for user with ADMIN role
-        Integer newVersion = jdbcTemplate.queryForObject(
-                "SELECT permissions_version FROM users WHERE id = ?",
-                Integer.class, testUser.getId());
-        assertThat(newVersion).isEqualTo(2);
-
-        // Verify version written to Redis
-        String redisVersion = redisTemplate.opsForValue().get("auth:user:version:" + testUser.getId());
+        String redisVersion = redisTemplate.opsForValue().get("auth:user:jwt:version:" + testUser.getId());
         assertThat(redisVersion).isEqualTo("2");
     }
 
     @Test
-    void refreshReturnsUpdatedPermissionsVersion() throws Exception {
+    void refreshReturnsUpdatedJwtVersion() throws Exception {
         LoginRequest loginRequest = new LoginRequest("test@example.com", "password123");
 
         // Login to get initial token
@@ -356,6 +333,6 @@ class AuthFlowTest {
         // Verify new token has updated version
         String[] parts = newToken.split("\\.");
         String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
-        assertThat(payload).contains("\"permissions_version\":2");
+        assertThat(payload).contains("\"jwt_version\":2");
     }
 }

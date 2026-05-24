@@ -35,20 +35,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 	@Modifying
 	@Transactional
 	@Query(
-		value = "UPDATE users SET permissions_version = permissions_version + 1 WHERE id = :userId",
-		nativeQuery = true
-	)
-	void incrementPermissionsVersion(@Param("userId") UUID userId);
-
-	@Query(
-		value = "SELECT permissions_version FROM users WHERE id = :userId",
-		nativeQuery = true
-	)
-	Integer getPermissionsVersion(@Param("userId") UUID userId);
-
-	@Modifying
-	@Transactional
-	@Query(
 		value = "INSERT INTO user_roles (user_id, role_id) VALUES (:userId, :roleId)",
 		nativeQuery = true
 	)
@@ -62,24 +48,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 	)
 	void removeRoleFromUser(@Param("userId") UUID userId, @Param("roleId") Integer roleId);
 
-	@Modifying
-	@Transactional
 	@Query(
 		value = """
-			UPDATE users SET permissions_version = permissions_version + 1
-			WHERE id IN (SELECT user_id FROM user_roles WHERE role_id = :roleId)
-			""",
-		nativeQuery = true
-	)
-	void incrementPermissionsVersionForUsersWithRole(@Param("roleId") Integer roleId);
-
-	@Query(
-		value = """
-			SELECT u.id, u.permissions_version FROM users u
+			SELECT u.id FROM users u
 			JOIN user_roles ur ON u.id = ur.user_id
 			WHERE ur.role_id = :roleId
 			""",
 		nativeQuery = true
 	)
-	List<Object[]> findUsersWithRole(@Param("roleId") Integer roleId);
+	List<UUID> findUsersWithRole(@Param("roleId") Integer roleId);
 }

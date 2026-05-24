@@ -35,7 +35,7 @@ public class JwtService {
         this.refreshTokenExpirationMs = refreshTokenExpirationMs;
     }
 
-    public String generateAccessToken(UUID userId, String email, Set<String> permissions, Integer permissionsVersion) {
+    public String generateAccessToken(UUID userId, String email, Set<String> permissions, Integer jwtVersion) {
         Instant now = Instant.now();
         Instant expiration = now.plusMillis(accessTokenExpirationMs);
 
@@ -43,7 +43,7 @@ public class JwtService {
                 .subject(userId.toString())
                 .claim("email", email)
                 .claim("permissions", permissions)
-                .claim("permissions_version", permissionsVersion)
+                .claim("jwt_version", jwtVersion)
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(expiration))
                 .build();

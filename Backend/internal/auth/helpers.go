@@ -27,7 +27,7 @@ func ValidateClaims(claims *Claims) error {
 	if claims.Email == "" {
 		return fmt.Errorf("missing email claim")
 	}
-	if claims.PermissionsVersion < 1 {
+	if claims.JwtVersion < 1 {
 		return fmt.Errorf("invalid permissions version")
 	}
 	return nil

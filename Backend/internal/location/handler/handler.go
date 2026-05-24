@@ -20,9 +20,8 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(r chi.Router, middleware ...func(http.Handler) http.Handler) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Route("/locations", func(r chi.Router) {
-		r.Use(middleware...)
 
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequirePermission(PermissionWrite))
