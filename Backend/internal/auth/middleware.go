@@ -28,7 +28,7 @@ func JWTAuth(jwks *JWKSCache) func(http.Handler) http.Handler {
 	}
 }
 
-func VersionCheck(redis *RedisClient) func(http.Handler) http.Handler {
+func VersionCheck(versionProvider JwtVersionProvider) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims := GetClaimsFromContext(r.Context())
@@ -37,7 +37,7 @@ func VersionCheck(redis *RedisClient) func(http.Handler) http.Handler {
 				return
 			}
 
-			redisVersion, err := redis.GetJwtVersion(claims.UserID)
+			redisVersion, err := versionProvider.GetJwtVersion(claims.UserID)
 			if err != nil {
 				apperror.HandlerespondUnauthorized(w, "Unable to verify claims")
 				return

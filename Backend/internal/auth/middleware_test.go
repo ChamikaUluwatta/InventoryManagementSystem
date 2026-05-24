@@ -274,3 +274,60 @@ func TestJWKSCache_Refresh(t *testing.T) {
 	}
 
 }
+
+type mockVersionProvider struct {
+	version int
+	err     error
+}
+
+func (m *mockVersionProvider) GetJwtVersion(userID string) (int, error) {
+	return m.version, m.err
+}
+
+func TestVersionCheck_StaleTokenReturns401(t *testing.T) {
+	claims := &Claims{
+		UserID:     "test-user",
+		JwtVersion: 1,
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := VersionCheck(&mockVersionProvider{version: 2})(handler)
+
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := ContextWithClaims(req.Context(), claims)
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	middleware.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+func TestVersionCheck_CurrentVersionPasses(t *testing.T) {
+	claims := &Claims{
+		UserID:     "test-user",
+		JwtVersion: 2,
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := VersionCheck(&mockVersionProvider{version: 2})(handler)
+
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := ContextWithClaims(req.Context(), claims)
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	middleware.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+}

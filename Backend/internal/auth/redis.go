@@ -8,6 +8,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type JwtVersionProvider interface {
+	GetJwtVersion(userID string) (int, error)
+}
+
 const jwtVersionPrefix = "auth:user:jwt:version:"
 
 type RedisClient struct {
