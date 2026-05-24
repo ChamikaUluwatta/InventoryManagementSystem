@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /seed", h.Seed)
+func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Post("/seed", h.Seed)
 }
 
 type Handler struct {

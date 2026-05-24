@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category/service"
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
@@ -18,12 +20,22 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /categories", h.Create)
-	mux.HandleFunc("GET /categories", h.GetAll)
-	mux.HandleFunc("GET /categories/{id}", h.GetByID)
-	mux.HandleFunc("PUT /categories/{id}", h.Update)
-	mux.HandleFunc("DELETE /categories/{id}", h.Delete)
+func (h *Handler) RegisterRoutes(r chi.Router, middleware ...func(http.Handler) http.Handler) {
+	r.Route("/categories", func(r chi.Router) {
+		r.Use(middleware...)
+
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionWrite))
+			r.Post("/", h.Create)
+			r.Put("/{id}", h.Update)
+			r.Delete("/{id}", h.Delete)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionRead))
+			r.Get("/", h.GetAll)
+			r.Get("/{id}", h.GetByID)
+		})
+	})
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +56,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid category id", err))
@@ -74,7 +86,7 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid category id", err))
@@ -98,7 +110,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid category id", err))

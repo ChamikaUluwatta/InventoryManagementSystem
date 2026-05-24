@@ -49,3 +49,10 @@ func Conflict(message string, err error) *AppError {
 		err:        err,
 	}
 }
+
+func Unauthorized(message string) *AppError {
+	return &AppError{
+		StatusCode: http.StatusUnauthorized,
+		Message:    message,
+	}
+}

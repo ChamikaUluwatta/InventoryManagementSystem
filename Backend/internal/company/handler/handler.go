@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/service"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -19,13 +21,23 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /companies", h.Create)
-	mux.HandleFunc("GET /companies", h.GetAll)
-	mux.HandleFunc("GET /companies/{id}", h.GetByID)
-	mux.HandleFunc("PUT /companies/{id}", h.Update)
-	mux.HandleFunc("DELETE /companies/{id}", h.Delete)
-	mux.HandleFunc("GET /companies/{id}/dependencies", h.GetCompanyDependencies)
+func (h *Handler) RegisterRoutes(r chi.Router, middleware ...func(http.Handler) http.Handler) {
+	r.Route("/companies", func(r chi.Router) {
+		r.Use(middleware...)
+
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionWrite))
+			r.Post("/", h.Create)
+			r.Put("/{id}", h.Update)
+			r.Delete("/{id}", h.Delete)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionRead))
+			r.Get("/", h.GetAll)
+			r.Get("/{id}", h.GetByID)
+			r.Get("/{id}/dependencies", h.GetCompanyDependencies)
+		})
+	})
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +58,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid company id", err))
@@ -76,7 +88,7 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid company id", err))
@@ -100,7 +112,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid company id", err))
@@ -116,7 +128,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetCompanyDependencies(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("invalid company id", err))

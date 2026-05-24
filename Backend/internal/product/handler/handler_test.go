@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"github.com/go-chi/chi/v5"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/handler"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/service"
@@ -19,11 +21,11 @@ import (
 )
 
 type mockService struct {
-	createFunc  func(ctx context.Context, product *model.Product) error
-	getByIDFunc func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
-	getAllFunc  func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
-	updateFunc  func(ctx context.Context, product *model.Product) error
-	deleteFunc  func(ctx context.Context, id uuid.UUID) error
+	createFunc        func(ctx context.Context, product *model.Product) error
+	getByIDFunc       func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
+	getAllFunc        func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
+	updateFunc        func(ctx context.Context, product *model.Product) error
+	deleteFunc        func(ctx context.Context, id uuid.UUID) error
 }
 
 func (m *mockService) CreateProduct(ctx context.Context, product *model.Product) error {
@@ -42,9 +44,23 @@ func (m *mockService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	return m.deleteFunc(ctx, id)
 }
 
-func setupHandler(svc service.Service) *http.ServeMux {
+
+
+func setupHandler(svc service.Service) *chi.Mux {
 	h := handler.NewHandler(svc)
-	mux := http.NewServeMux()
+	mux := chi.NewRouter()
+	mux.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := &auth.Claims{
+				UserID: "test-user",
+				Email:              "test@example.com",
+				Permissions:        []string{"products:read", "products:write"},
+				PermissionsVersion: 1,
+			}
+			ctx := auth.ContextWithClaims(r.Context(), claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
 	h.RegisterRoutes(mux)
 	return mux
 }
@@ -413,3 +429,5 @@ func TestErrorResponse(t *testing.T) {
 		t.Errorf("expected status code 500 in body, got %d", resp.StatusCode)
 	}
 }
+
+

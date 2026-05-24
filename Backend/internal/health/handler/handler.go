@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/health/service"
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
@@ -15,8 +16,8 @@ func NewHandler(s service.Service) *Handler {
 	return &Handler{service: s}
 }
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /health", h.healthCheck)
+func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Get("/health", h.healthCheck)
 }
 
 func (h *Handler) healthCheck(w http.ResponseWriter, r *http.Request) {

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"github.com/go-chi/chi/v5"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/handler"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/service"
@@ -42,9 +44,21 @@ func (m *mockService) DeleteInventory(ctx context.Context, id int) error {
 	return m.deleteFunc(ctx, id)
 }
 
-func setupHandler(svc service.Service) *http.ServeMux {
+func setupHandler(svc service.Service) *chi.Mux {
 	h := handler.NewHandler(svc)
-	mux := http.NewServeMux()
+	mux := chi.NewRouter()
+	mux.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := &auth.Claims{
+				UserID: "test-user",
+				Email:              "test.com",
+				Permissions:        []string{"inventories:read", "inventories:write"},
+				PermissionsVersion: 1,
+			}
+			ctx := auth.ContextWithClaims(r.Context(), claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
 	h.RegisterRoutes(mux)
 	return mux
 }

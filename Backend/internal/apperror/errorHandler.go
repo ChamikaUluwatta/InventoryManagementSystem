@@ -24,3 +24,21 @@ func HandleError(w http.ResponseWriter, err error) {
 		Message:    "Internal Server Error",
 	})
 }
+
+func HandlerespondUnauthorized(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	json.NewEncoder(w).Encode(AppError{
+		StatusCode: http.StatusUnauthorized,
+		Message:    message,
+	})
+}
+
+func HandlerespondForbidden(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	json.NewEncoder(w).Encode(AppError{
+		StatusCode: http.StatusForbidden,
+		Message:    message,
+	})
+}
