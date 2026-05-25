@@ -130,3 +130,10 @@ func ValidateParams(limit, offset int) (model.GetProductsQueryParams, error) {
 	}
 	return model.GetProductsQueryParams{Limit: limit, Offset: offset}, nil
 }
+
+func ValidateGroupBy(groupBy string) error {
+	if groupBy != "category" && groupBy != "location" {
+		return apperror.BadRequest("group_by must be 'category' or 'location'", nil)
+	}
+	return nil
+}

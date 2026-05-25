@@ -1,10 +1,10 @@
-MIGRATE=migrate -path=./Backend/internal/database/migrations -database "$(DB_URL)"
+MIGRATE=migrate -path=./Backend/internal/database/migrations -database "$(DBURL)"
 
 ifneq ($(wildcard .env),)
-	DB_URL ?= $(strip $(shell grep -E '^DB_HOST=' .env 2>/dev/null | head -n1 | sed 's/^DB_HOST=//'))
+	DBURL ?= $(strip $(shell grep -E '^DB_HOST=' .env 2>/dev/null | head -n1 | sed 's/^DB_HOST=//'))
 endif
 
-export DB_URL
+export DBURL
 
 # Development
 
@@ -18,10 +18,15 @@ run/backend:
 run/frontend:
 	cd Frontend && npm run dev
 
+## run/authservice: run the auth service
+.PHONY: run/authservice
+run/authservice:
+	cd AuthService && ./mvnw spring-boot:run
+
 ## run: run both backend and frontend concurrently
 .PHONY: run
 run:
-	make -j2 run/backend run/frontend
+	make -j3 run/backend run/frontend run/authservice
 
 # Database Migrations
 

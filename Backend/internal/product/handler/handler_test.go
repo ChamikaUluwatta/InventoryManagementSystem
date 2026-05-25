@@ -21,11 +21,12 @@ import (
 )
 
 type mockService struct {
-	createFunc        func(ctx context.Context, product *model.Product) error
-	getByIDFunc       func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
-	getAllFunc        func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
-	updateFunc        func(ctx context.Context, product *model.Product) error
-	deleteFunc        func(ctx context.Context, id uuid.UUID) error
+	createFunc            func(ctx context.Context, product *model.Product) error
+	getByIDFunc           func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
+	getAllFunc            func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
+	updateFunc            func(ctx context.Context, product *model.Product) error
+	deleteFunc            func(ctx context.Context, id uuid.UUID) error
+	getAllProductCountBy  func(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error)
 }
 
 func (m *mockService) CreateProduct(ctx context.Context, product *model.Product) error {
@@ -42,6 +43,12 @@ func (m *mockService) UpdateProduct(ctx context.Context, product *model.Product)
 }
 func (m *mockService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	return m.deleteFunc(ctx, id)
+}
+func (m *mockService) GetAllProductCountBy(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error) {
+	if m.getAllProductCountBy != nil {
+		return m.getAllProductCountBy(ctx, groupBy)
+	}
+	return nil, nil
 }
 
 

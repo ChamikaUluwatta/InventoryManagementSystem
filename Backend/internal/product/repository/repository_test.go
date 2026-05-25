@@ -13,10 +13,12 @@ import (
 )
 
 var (
-	testDB         *testutil.TestDB
-	seedCompanyID  uuid.UUID
-	seedCategoryID int
-	seedLocationID string
+	testDB          *testutil.TestDB
+	seedCompanyID   uuid.UUID
+	seedCategoryID  int
+	seedLocationID  string
+	seedCategoryID2 int
+	seedLocationID2 string
 )
 
 const migrationPath = "../../database/migrations"
@@ -454,4 +456,138 @@ func TestDelete(t *testing.T) {
 			t.Errorf("expected 'product not found', got '%s'", err.Error())
 		}
 	})
+}
+
+func TestProductCount(t *testing.T) {
+	ctx := t.Context()
+	repo := repository.NewRepository(testDB.Pool)
+
+	// Clear products from other tests that might pollute counts
+	if _, err := testDB.Pool.Exec(ctx, `DELETE FROM products`); err != nil {
+		t.Fatalf("failed to clear products: %v", err)
+	}
+
+	err := testDB.Pool.QueryRow(t.Context(), `INSERT INTO categories (category_name) VALUES ($1) RETURNING category_id`, "TestCategory2").Scan(&seedCategoryID2)
+	if err != nil {
+		t.Fatalf("failed to create categories: %v", err)
+	}
+
+	err = testDB.Pool.QueryRow(t.Context(), `INSERT INTO locations (location_id) VALUES ($1) RETURNING location_id`, "TEST-LOC-2").Scan(&seedLocationID2)
+	if err != nil {
+		t.Fatalf("failed to create locations: %v", err)
+	}
+
+	products := []model.Product{
+		{
+			ProductName:        "Count Product 1",
+			ProductDescription: "desc",
+			Diameter:           decimal.NewFromFloat(1.0),
+			Width:              decimal.NewFromFloat(1.0),
+			CompanyID:          seedCompanyID,
+			Price:              decimal.NewFromFloat(1.0),
+			CategoryID:         seedCategoryID,
+			LocationID:         seedLocationID,
+		},
+		{
+			ProductName:        "Count Product 2",
+			ProductDescription: "desc",
+			Diameter:           decimal.NewFromFloat(2.0),
+			Width:              decimal.NewFromFloat(2.0),
+			CompanyID:          seedCompanyID,
+			Price:              decimal.NewFromFloat(2.0),
+			CategoryID:         seedCategoryID2,
+			LocationID:         seedLocationID2,
+		},
+		{
+			ProductName:        "Count Product 3",
+			ProductDescription: "desc",
+			Diameter:           decimal.NewFromFloat(3.0),
+			Width:              decimal.NewFromFloat(3.0),
+			CompanyID:          seedCompanyID,
+			Price:              decimal.NewFromFloat(3.0),
+			CategoryID:         seedCategoryID,
+			LocationID:         seedLocationID,
+		},
+	}
+
+	for i := range products {
+		if err := repo.Create(t.Context(), &products[i]); err != nil {
+			t.Fatalf("failed to create product %s: %v", products[i].ProductName, err)
+		}
+	}
+
+	type productCount struct {
+		CategoryID int `json:"category_id"`
+		Count      int `json:"count"`
+	}
+
+	t.Run("Product Count Group by Category", func(t *testing.T) {
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		expected := []productCount{
+			{
+				CategoryID: seedCategoryID,
+				Count:      2,
+			},
+			{
+				CategoryID: seedCategoryID2,
+				Count:      1,
+			},
+		}
+
+		response, err := repo.GetAllProductCountBy(t.Context(), "category")
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		for i, expectedGroup := range expected {
+			if i >= len(response) {
+				t.Fatalf("expected group %d, but response has only %d groups", i, len(response))
+			}
+			respGroup := response[i]
+			if respGroup.CategoryID != expectedGroup.CategoryID {
+				t.Errorf("expected category id %d, got %d", expectedGroup.CategoryID, respGroup.CategoryID)
+			}
+			if respGroup.ProductCount != expectedGroup.Count {
+				t.Errorf("expected count %d for category %d, got %d", expectedGroup.Count, expectedGroup.CategoryID, respGroup.ProductCount)
+			}
+		}
+	})
+
+	t.Run("Product Count group by location", func(t *testing.T) {
+		type locationCount struct {
+			LocationID string `json:"location_id"`
+			Count      int    `json:"count"`
+		}
+		expected := []locationCount{
+			{
+				LocationID: seedLocationID,
+				Count:      2,
+			},
+			{
+				LocationID: seedLocationID2,
+				Count:      1,
+			},
+		}
+
+		response, err := repo.GetAllProductCountBy(t.Context(), "location")
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		for i, expectedGroup := range expected {
+			if i >= len(response) {
+				t.Fatalf("expected group %d, but response has only %d groups", i, len(response))
+			}
+			respGroup := response[i]
+			if respGroup.LocationID != expectedGroup.LocationID {
+				t.Errorf("expected location id '%s', got '%s'", expectedGroup.LocationID, respGroup.LocationID)
+			}
+			if respGroup.ProductCount != expectedGroup.Count {
+				t.Errorf("expected count %d for location '%s', got %d", expectedGroup.Count, expectedGroup.LocationID, respGroup.ProductCount)
+			}
+		}
+	})
+
 }

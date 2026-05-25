@@ -12,11 +12,12 @@ import (
 )
 
 type mockRepo struct {
-	createFunc                   func(ctx context.Context, product *model.Product) error
-	getById                      func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
-	getAll                       func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
-	update                       func(ctx context.Context, product *model.Product) error
-	delete                       func(ctx context.Context, id uuid.UUID) error
+	createFunc           func(ctx context.Context, product *model.Product) error
+	getById              func(ctx context.Context, id uuid.UUID) (*model.GetProductById, error)
+	getAll               func(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
+	update               func(ctx context.Context, product *model.Product) error
+	delete               func(ctx context.Context, id uuid.UUID) error
+	getAllProductCountBy func(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error)
 }
 
 func (m *mockRepo) Create(ctx context.Context, product *model.Product) error {
@@ -39,9 +40,12 @@ func (m *mockRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return m.delete(ctx, id)
 }
 
-
-
-
+func (m *mockRepo) GetAllProductCountBy(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error) {
+	if m.getAllProductCountBy != nil {
+		return m.getAllProductCountBy(ctx, groupBy)
+	}
+	return nil, nil
+}
 
 const (
 	invalidProductNameErrorMessage = "Invalid Product name"
@@ -304,5 +308,3 @@ func TestDeleteProduct(t *testing.T) {
 		}
 	})
 }
-
-

@@ -27,3 +27,9 @@ type GetProductsQueryParams struct {
 	Limit      int
 	Offset     int
 }
+
+type ProductCountGroupBy struct {
+	LocationID   string `json:"location_id,omitempty"`
+	CategoryID   int    `json:"category_id,omitempty"`
+	ProductCount int    `json:"product_count"`
+}

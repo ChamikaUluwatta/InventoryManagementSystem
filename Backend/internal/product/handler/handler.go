@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Use(auth.RequirePermission(PermissionRead))
 			r.Get("/", h.GetAll)
 			r.Get("/{id}", h.GetByID)
+			r.Get("/counts", h.GetCounts)
 		})
 	})
 }
@@ -180,4 +181,21 @@ func parseGetProductsQueryParams(r *http.Request) (model.GetProductsQueryParams,
 	}
 
 	return params, nil
+}
+
+func (h *Handler) GetCounts(w http.ResponseWriter, r *http.Request) {
+	groupBy := r.URL.Query().Get("group_by")
+	if groupBy == "" {
+		apperror.HandleError(w, apperror.BadRequest("group_by query parameter is required", nil))
+		return
+	}
+
+	result, err := h.service.GetAllProductCountBy(r.Context(), groupBy)
+	if err != nil {
+		apperror.HandleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }

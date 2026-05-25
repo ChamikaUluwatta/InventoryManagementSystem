@@ -17,6 +17,7 @@ type Repository interface {
 	GetAll(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
 	Update(ctx context.Context, product *model.Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetAllProductCountBy(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error)
 }
 
 type repository struct {
@@ -183,4 +184,50 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 		return apperror.NotFound("product not found", nil)
 	}
 	return nil
+}
+
+func (r *repository) GetAllProductCountBy(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error) {
+	var query string
+	switch groupBy {
+	case "location":
+		query = `
+			SELECT 
+				location_id,
+				COUNT(*) as product_count
+			FROM "products"
+			GROUP BY location_id
+			ORDER BY location_id`
+	case "category":
+		query = `
+			SELECT 
+				category_id,
+				COUNT(*) as product_count
+			FROM "products"
+			GROUP BY category_id
+			ORDER BY category_id`
+	default:
+		return nil, apperror.BadRequest("invalid group_by parameter", nil)
+	}
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, apperror.Internal("failed to get product count", err)
+	}
+	defer rows.Close()
+
+	var productCounts []model.ProductCountGroupBy
+	for rows.Next() {
+		var pc model.ProductCountGroupBy
+		if groupBy == "location" {
+			err = rows.Scan(&pc.LocationID, &pc.ProductCount)
+		} else {
+			err = rows.Scan(&pc.CategoryID, &pc.ProductCount)
+		}
+		if err != nil {
+			return nil, apperror.Internal("failed to scan product count", err)
+		}
+		productCounts = append(productCounts, pc)
+	}
+
+	return productCounts, nil
 }
