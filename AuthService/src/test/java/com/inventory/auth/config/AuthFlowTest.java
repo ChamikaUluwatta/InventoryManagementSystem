@@ -197,9 +197,16 @@ class AuthFlowTest {
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andReturn().getResponse().getCookie("refresh_token").getValue();
 
+        assertThat(redisTemplate.opsForValue().get("auth:user:jwt:version:" + testUser.getId()))
+                .isEqualTo("1");
+
         mockMvc.perform(post("/api/v1/auth/logout")
                         .cookie(new jakarta.servlet.http.Cookie("refresh_token", refreshToken)))
                 .andExpect(status().isNoContent());
+
+        // Verify JWT version was incremented on logout
+        assertThat(redisTemplate.opsForValue().get("auth:user:jwt:version:" + testUser.getId()))
+                .isEqualTo("2");
 
         // Try to refresh with the revoked token
         mockMvc.perform(post("/api/v1/auth/refresh")
@@ -227,7 +234,7 @@ class AuthFlowTest {
     }
 
     @Test
-    void accessTokenContainsPermissionsVersion() throws Exception {
+    void accessTokenContainsJwtVersion() throws Exception {
         LoginRequest request = new LoginRequest("test@example.com", "password123");
 
         String response = mockMvc.perform(post("/api/v1/auth/login")
