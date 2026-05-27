@@ -1,4 +1,4 @@
-package seed
+package service
 
 import (
 	"context"
@@ -10,20 +10,20 @@ import (
 )
 
 type Service struct {
-	companyCreator   companyCreator
-	categoryCreator  categoryCreator
-	locationCreator  locationCreator
-	productCreator   productCreator
-	inventoryCreator inventoryCreator
+	companyCreator   CompanyCreator
+	categoryCreator  CategoryCreator
+	locationCreator  LocationCreator
+	productCreator   ProductCreator
+	inventoryCreator InventoryCreator
 	db               *pgxpool.Pool
 }
 
 func NewService(
-	companyCreator companyCreator,
-	categoryCreator categoryCreator,
-	locationCreator locationCreator,
-	productCreator productCreator,
-	inventoryCreator inventoryCreator,
+	companyCreator CompanyCreator,
+	categoryCreator CategoryCreator,
+	locationCreator LocationCreator,
+	productCreator ProductCreator,
+	inventoryCreator InventoryCreator,
 	db *pgxpool.Pool,
 ) *Service {
 	return &Service{
@@ -86,7 +86,7 @@ func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
 		ids.LocationIDs = append(ids.LocationIDs, l.LocationID)
 	}
 
-	products, err := seedProductsFn(ctx, s.productCreator, defaultProducts, ids.CompanyIDs, ids.CategoryIDs)
+	products, err := seedProductsFn(ctx, s.productCreator, defaultProducts, ids.CompanyIDs, ids.CategoryIDs, ids.LocationIDs)
 	if err != nil {
 		return nil, nil, err
 	}

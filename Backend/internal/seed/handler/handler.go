@@ -1,27 +1,28 @@
-package seed
+package handler
 
 import (
 	"encoding/json"
 	"net/http"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/seed/service"
 	"github.com/go-chi/chi/v5"
 )
+
+type Handler struct {
+	service *service.Service
+}
+
+func NewHandler(service *service.Service) *Handler {
+	return &Handler{service: service}
+}
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/seed", h.Seed)
 }
 
-type Handler struct {
-	service *Service
-}
-
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
-}
-
 func (h *Handler) Seed(w http.ResponseWriter, r *http.Request) {
-	result, ids, err := h.service.Seed(r.Context())
+	_, _, err := h.service.Seed(r.Context())
 	if err != nil {
 		apperror.HandleError(w, apperror.Internal("seed failed", err))
 		return
@@ -29,8 +30,6 @@ func (h *Handler) Seed(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]interface{}{
 		"message": "Seed completed successfully",
-		"result":  result,
-		"ids":     ids,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

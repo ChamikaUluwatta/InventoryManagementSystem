@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -12,9 +11,6 @@ import (
 )
 
 func main() {
-	seedEnabled := flag.Bool("seed", false, "Enable seed endpoint")
-	flag.Parse()
-
 	if os.Getenv("DB_HOST") == "" {
 		if err := godotenv.Load(); err != nil {
 			log.Fatal("Error loading .env file")
@@ -32,7 +28,7 @@ func main() {
 	r.Use(server.SecureHeaders)
 	r.Use(server.CheckCORS)
 
-	server.SetupRoutes(r, db, *seedEnabled)
+	server.SetupRoutes(r, db)
 
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
