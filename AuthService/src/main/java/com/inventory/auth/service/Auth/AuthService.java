@@ -1,5 +1,6 @@
 package com.inventory.auth.service.Auth;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -13,8 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.inventory.auth.dto.TokenResponse;
 import com.inventory.auth.exception.CustomAuthException;
 import com.inventory.auth.model.Role;
+import com.inventory.auth.model.Tenant;
 import com.inventory.auth.model.User;
 import com.inventory.auth.repository.RoleRepository;
+import com.inventory.auth.repository.TenantRepository;
 import com.inventory.auth.repository.UserRepository;
 import com.inventory.auth.service.Auth.TokenRevocationService.RefreshTokenData;
 
@@ -24,6 +27,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final TenantRepository tenantRepository;
     private final JwtService jwtService;
     private final TokenRevocationService tokenRevocationService;
 
@@ -31,20 +35,51 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             UserRepository userRepository,
             RoleRepository roleRepository,
+            TenantRepository tenantRepository,
             JwtService jwtService,
             TokenRevocationService tokenRevocationService) {
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.tenantRepository = tenantRepository;
         this.jwtService = jwtService;
         this.tokenRevocationService = tokenRevocationService;
     }
 
     @Transactional
     public User createUser(String email, String rawPassword) {
+        Tenant tenant = new Tenant();
+        tenant.setTenantName(email);
+        tenant = tenantRepository.save(tenant);
+
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setTenant(tenant);
+        try {
+            User savedUser = userRepository.saveAndFlush(user);
+
+            Role adminRole = roleRepository.findByName("ADMIN")
+                    .orElseThrow(() -> new IllegalStateException("ADMIN role not found"));
+            userRepository.addRoleToUser(savedUser.getId(), adminRole.getId());
+
+            return savedUser;
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomAuthException(409, "An account with this email already exists");
+        }
+    }
+
+    @Transactional
+    public User createGuestUser(String email, String rawPassword) {
+        Tenant tenant = new Tenant();
+        tenant.setTenantName(email);
+        tenant = tenantRepository.save(tenant);
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setGuest(true);
+        user.setTenant(tenant);
         try {
             User savedUser = userRepository.saveAndFlush(user);
 
@@ -68,7 +103,8 @@ public class AuthService {
 
         Set<String> permissions = userRepository.findPermissionNamesByEmail(email);
         Integer jwtVersion = tokenRevocationService.getJwtVersion(user.getId());
-        String accessToken = jwtService.generateAccessToken(user.getId(), email, permissions, jwtVersion);
+        UUID tenantId = user.getTenant().getTenantId();
+        String accessToken = jwtService.generateAccessToken(user.getId(), email, permissions, jwtVersion, tenantId);
 
         tokenRevocationService.storeRefreshToken(
                 refreshToken,
@@ -96,7 +132,10 @@ public class AuthService {
 
         Set<String> permissions = userRepository.findPermissionNamesByEmail(data.email());
         Integer jwtVersion = tokenRevocationService.getJwtVersion(data.userId());
-        String accessToken = jwtService.generateAccessToken(data.userId(), data.email(), permissions, jwtVersion);
+        User user = userRepository.findByEmail(data.email())
+                .orElseThrow(() -> new CustomAuthException(401, "Your session has expired, please log in again"));
+        UUID tenantId = user.getTenant().getTenantId();
+        String accessToken = jwtService.generateAccessToken(data.userId(), data.email(), permissions, jwtVersion, tenantId);
         tokenRevocationService.storeRefreshToken(
                 newRefreshToken,
                 data.userId(),
@@ -125,6 +164,24 @@ public class AuthService {
 
     public long getRefreshTokenExpirationMs() {
         return jwtService.getRefreshTokenExpirationMs();
+    }
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final String GUEST_EMAIL_DOMAIN = "@example.com";
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    private static final int PASSWORD_LENGTH = 12;
+
+    public String generateGuestEmail() {
+        String randomPart = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        return "guest-" + randomPart + GUEST_EMAIL_DOMAIN;
+    }
+
+    public String generateRandomPassword() {
+        StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     @Transactional

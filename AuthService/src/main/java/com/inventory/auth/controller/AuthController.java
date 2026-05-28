@@ -7,9 +7,11 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.inventory.auth.config.ApiPaths;
+import com.inventory.auth.dto.GuestResponse;
 import com.inventory.auth.dto.LoginRequest;
 import com.inventory.auth.dto.RegisterRequest;
 import com.inventory.auth.dto.TokenResponse;
@@ -38,10 +40,40 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(
+            @Valid @RequestBody(required = false) RegisterRequest request,
+            @RequestParam(required = false) String type,
+            HttpServletResponse response) {
+
+        if ("guest".equals(type)) {
+            String email = authService.generateGuestEmail();
+            String password = authService.generateRandomPassword();
+
+            User user = authService.createGuestUser(email, password);
+
+            String refreshToken = authService.generateRefreshToken();
+            TokenResponse tokenResponse = authService.authenticate(email, password, refreshToken);
+
+            setRefreshTokenCookie(response, refreshToken);
+
+            GuestResponse guestResponse = new GuestResponse(
+                    email,
+                    password,
+                    tokenResponse.accessToken(),
+                    tokenResponse.tokenType(),
+                    tokenResponse.expiresIn(),
+                    tokenResponse.permissions());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(guestResponse);
+        }
+
+        if (request == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
         User user = authService.createUser(request.email(), request.password());
-        UserResponse response = new UserResponse(user.getId(), user.getEmail(), user.getCreatedAt());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        UserResponse userResponse = new UserResponse(user.getId(), user.getEmail(), user.getCreatedAt());
+        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
     }
 
     @PostMapping("/login")

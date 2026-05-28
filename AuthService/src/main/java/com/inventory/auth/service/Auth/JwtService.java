@@ -35,7 +35,7 @@ public class JwtService {
         this.refreshTokenExpirationMs = refreshTokenExpirationMs;
     }
 
-    public String generateAccessToken(UUID userId, String email, Set<String> permissions, Integer jwtVersion) {
+    public String generateAccessToken(UUID userId, String email, Set<String> permissions, Integer jwtVersion, UUID tenantId) {
         Instant now = Instant.now();
         Instant expiration = now.plusMillis(accessTokenExpirationMs);
 
@@ -44,6 +44,7 @@ public class JwtService {
                 .claim("email", email)
                 .claim("permissions", permissions)
                 .claim("jwt_version", jwtVersion)
+                .claim("tenant_id", tenantId.toString())
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(expiration))
                 .build();
@@ -51,7 +52,7 @@ public class JwtService {
         return signToken(claims);
     }
 
-    public String generateRefreshToken() {
+    public String generateRefreshToken() { // Need to reduce collision probability by adding user id
         return UUID.randomUUID().toString();
     }
 

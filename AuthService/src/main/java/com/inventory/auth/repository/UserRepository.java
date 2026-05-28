@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -57,4 +58,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 		nativeQuery = true
 	)
 	List<UUID> findUsersWithRole(@Param("roleId") Integer roleId);
+
+	List<User> findByIsGuestTrueAndCreatedAtBefore(Instant cutoff);
 }
