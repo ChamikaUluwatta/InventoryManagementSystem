@@ -8,9 +8,11 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category/repository"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/testutil"
+	"github.com/google/uuid"
 )
 
 var testDB *testutil.TestDB
+var testTenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 const migrationPath = "../../database/migrations"
 
@@ -35,6 +37,7 @@ func TestCreate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		category := model.Category{
 			CategoryName: "Create Test Category",
+			TenantID:     testTenantID,
 		}
 		err := repo.Create(t.Context(), &category)
 		if err != nil {
@@ -55,6 +58,7 @@ func TestCreate(t *testing.T) {
 	t.Run("success with parent", func(t *testing.T) {
 		parent := model.Category{
 			CategoryName: "Parent Category",
+			TenantID:     testTenantID,
 		}
 		if err := repo.Create(t.Context(), &parent); err != nil {
 			t.Fatalf("failed to create parent category: %v", err)
@@ -63,6 +67,7 @@ func TestCreate(t *testing.T) {
 		child := model.Category{
 			CategoryName: "Child Category",
 			ParentID:     &parent.CategoryID,
+			TenantID:     testTenantID,
 		}
 		err := repo.Create(t.Context(), &child)
 		if err != nil {
@@ -81,6 +86,7 @@ func TestCreate(t *testing.T) {
 	t.Run("Failure with Non exist Parent", func(t *testing.T) {
 		parent := model.Category{
 			CategoryName: "Real Parent Category",
+			TenantID:     testTenantID,
 		}
 		if err := repo.Create(t.Context(), &parent); err != nil {
 			t.Fatalf("failed to create parent category: %v", err)
@@ -89,6 +95,7 @@ func TestCreate(t *testing.T) {
 		child := model.Category{
 			CategoryName: "Child Category",
 			ParentID:     &nonExistentParentId,
+			TenantID:     testTenantID,
 		}
 		err := repo.Create(t.Context(), &child)
 		if err == nil {
@@ -105,6 +112,7 @@ func TestGetByID(t *testing.T) {
 
 	category := model.Category{
 		CategoryName: "GetByID Test Category",
+		TenantID:     testTenantID,
 	}
 	if err := repo.Create(t.Context(), &category); err != nil {
 		t.Fatalf("failed to create category: %v", err)
@@ -135,9 +143,9 @@ func TestGetAll(t *testing.T) {
 	repo := repository.NewRepository(testDB.Pool)
 
 	categories := []model.Category{
-		{CategoryName: "BB Category"},
-		{CategoryName: "AA Category"},
-		{CategoryName: "CC Category"},
+		{CategoryName: "BB Category", TenantID: testTenantID},
+		{CategoryName: "AA Category", TenantID: testTenantID},
+		{CategoryName: "CC Category", TenantID: testTenantID},
 	}
 	for i := range categories {
 		if err := repo.Create(t.Context(), &categories[i]); err != nil {
@@ -173,6 +181,7 @@ func TestUpdate(t *testing.T) {
 
 	category := model.Category{
 		CategoryName: "Original Update Category",
+		TenantID:     testTenantID,
 	}
 	if err := repo.Create(t.Context(), &category); err != nil {
 		t.Fatalf("failed to create category: %v", err)
@@ -182,6 +191,7 @@ func TestUpdate(t *testing.T) {
 		updated := model.Category{
 			CategoryID:   category.CategoryID,
 			CategoryName: "Updated Category Name",
+			TenantID:     testTenantID,
 		}
 		if err := repo.Update(t.Context(), &updated); err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -200,6 +210,7 @@ func TestUpdate(t *testing.T) {
 		nonExistent := model.Category{
 			CategoryID:   99999,
 			CategoryName: "Non-existent",
+			TenantID:     testTenantID,
 		}
 		err := repo.Update(t.Context(), &nonExistent)
 		if err == nil {
@@ -216,6 +227,7 @@ func TestDelete(t *testing.T) {
 
 	category := model.Category{
 		CategoryName: "Delete Me Category",
+		TenantID:     testTenantID,
 	}
 	if err := repo.Create(t.Context(), &category); err != nil {
 		t.Fatalf("failed to create category: %v", err)
@@ -248,6 +260,7 @@ func TestGetByParent(t *testing.T) {
 
 	parent := model.Category{
 		CategoryName: "Parent For GetByParent",
+		TenantID:     testTenantID,
 	}
 	if err := repo.Create(t.Context(), &parent); err != nil {
 		t.Fatalf("failed to create parent: %v", err)
@@ -256,6 +269,7 @@ func TestGetByParent(t *testing.T) {
 	child := model.Category{
 		CategoryName: "Child For GetByParent",
 		ParentID:     &parent.CategoryID,
+		TenantID:     testTenantID,
 	}
 	if err := repo.Create(t.Context(), &child); err != nil {
 		t.Fatalf("failed to create child: %v", err)

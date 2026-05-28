@@ -16,6 +16,7 @@ import (
 )
 
 var testDB *testutil.TestDB
+var testTenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 const migrationsDir = "../../database/migrations"
 
@@ -45,7 +46,7 @@ func newSeedService() *service.Service {
 func TestSeed_CreatesAllEntitiesWithCorrectCounts(t *testing.T) {
 	svc := newSeedService()
 
-	result, ids, err := svc.Seed(t.Context())
+	result, ids, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("Seed() returned unexpected error: %v", err)
 	}
@@ -83,7 +84,7 @@ func TestSeed_CreatesAllEntitiesWithCorrectCounts(t *testing.T) {
 func TestSeed_PersistsDataToDatabase(t *testing.T) {
 	svc := newSeedService()
 
-	_, _, err := svc.Seed(t.Context())
+	_, _, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("Seed() failed: %v", err)
 	}
@@ -122,7 +123,7 @@ func TestSeed_PersistsDataToDatabase(t *testing.T) {
 func TestSeed_ForeignKeyReferencesAreValid(t *testing.T) {
 	svc := newSeedService()
 
-	_, _, err := svc.Seed(t.Context())
+	_, _, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("Seed() failed: %v", err)
 	}
@@ -157,12 +158,12 @@ func TestSeed_ForeignKeyReferencesAreValid(t *testing.T) {
 func TestSeed_RerunClearsAndReSeeds(t *testing.T) {
 	svc := newSeedService()
 
-	_, _, err := svc.Seed(t.Context())
+	_, _, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("first Seed() failed: %v", err)
 	}
 
-	_, err = testDB.Pool.Exec(t.Context(), "INSERT INTO companies (company_name) VALUES ('Foreign Corp')")
+	_, err = testDB.Pool.Exec(t.Context(), "INSERT INTO companies (company_name, tenant_id) VALUES ('Foreign Corp', $1)", testTenantID)
 	if err != nil {
 		t.Fatalf("failed to insert extra row: %v", err)
 	}
@@ -173,7 +174,7 @@ func TestSeed_RerunClearsAndReSeeds(t *testing.T) {
 		t.Fatalf("expected 4 companies before re-seed, got %d", countBefore)
 	}
 
-	result, _, err := svc.Seed(t.Context())
+	result, _, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("second Seed() failed: %v", err)
 	}
@@ -192,7 +193,7 @@ func TestSeed_RerunClearsAndReSeeds(t *testing.T) {
 func TestSeed_TruncateAndReSeed(t *testing.T) {
 	svc := newSeedService()
 
-	_, _, err := svc.Seed(t.Context())
+	_, _, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("first Seed() failed: %v", err)
 	}
@@ -202,7 +203,7 @@ func TestSeed_TruncateAndReSeed(t *testing.T) {
 		t.Fatalf("failed to truncate tables: %v", err)
 	}
 
-	result, _, err := svc.Seed(t.Context())
+	result, _, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("Seed() after truncate failed: %v", err)
 	}
@@ -221,7 +222,7 @@ func TestSeed_TruncateAndReSeed(t *testing.T) {
 func TestSeed_ReturnsNonEmptyIDs(t *testing.T) {
 	svc := newSeedService()
 
-	_, ids, err := svc.Seed(t.Context())
+	_, ids, err := svc.Seed(t.Context(), testTenantID)
 	if err != nil {
 		t.Fatalf("Seed() failed: %v", err)
 	}

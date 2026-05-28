@@ -29,6 +29,7 @@ func SetupRoutes(r chi.Router, db *pgxpool.Pool) {
 	authMiddleware := []func(http.Handler) http.Handler{
 		auth.JWTAuth(jwks),
 		auth.VersionCheck(redisClient),
+		TenantRLS(db),
 	}
 
 	r.Route("/api/v1", func(r chi.Router) {

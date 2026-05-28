@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+const TestTenantID = "00000000-0000-0000-0000-000000000001"
 
 func StartPostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
 	container, err := postgres.Run(ctx,
@@ -35,7 +38,20 @@ func NewPoolFromContainer(ctx context.Context, container *postgres.PostgresConta
 		return nil, fmt.Errorf("failed to get connection string: %w", err)
 	}
 
-	pool, err := pgxpool.New(ctx, dsn)
+	config, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx,
+			"SELECT set_config('app.current_tenant_id', $1, false)",
+			TestTenantID,
+		)
+		return err
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pool: %w", err)
 	}

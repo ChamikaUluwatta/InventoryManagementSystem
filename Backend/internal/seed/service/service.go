@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -15,7 +16,7 @@ type Service struct {
 	locationCreator  LocationCreator
 	productCreator   ProductCreator
 	inventoryCreator InventoryCreator
-	db               *pgxpool.Pool
+	pool             *pgxpool.Pool
 }
 
 func NewService(
@@ -24,7 +25,7 @@ func NewService(
 	locationCreator LocationCreator,
 	productCreator ProductCreator,
 	inventoryCreator InventoryCreator,
-	db *pgxpool.Pool,
+	pool *pgxpool.Pool,
 ) *Service {
 	return &Service{
 		companyCreator:   companyCreator,
@@ -32,8 +33,15 @@ func NewService(
 		locationCreator:  locationCreator,
 		productCreator:   productCreator,
 		inventoryCreator: inventoryCreator,
-		db:               db,
+		pool:             pool,
 	}
+}
+
+func (s *Service) db(ctx context.Context) database.Querier {
+	if tx, ok := database.GetTx(ctx); ok {
+		return tx
+	}
+	return s.pool
 }
 
 type SeedResult struct {
@@ -51,7 +59,7 @@ type SeededIDs struct {
 	ProductIDs  []uuid.UUID `json:"product_ids"`
 }
 
-func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
+func (s *Service) Seed(ctx context.Context, tenantID uuid.UUID) (*SeedResult, *SeededIDs, error) {
 	if err := s.clearTables(ctx); err != nil {
 		return nil, nil, fmt.Errorf("failed to clear tables: %w", err)
 	}
@@ -59,7 +67,7 @@ func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
 	result := &SeedResult{}
 	ids := &SeededIDs{}
 
-	companies, err := seedCompaniesFn(ctx, s.companyCreator, defaultCompanies)
+	companies, err := seedCompaniesFn(ctx, s.companyCreator, defaultCompanies, tenantID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,7 +76,7 @@ func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
 		ids.CompanyIDs = append(ids.CompanyIDs, c.CompanyID)
 	}
 
-	categories, err := seedCategoriesFn(ctx, s.categoryCreator, defaultCategories)
+	categories, err := seedCategoriesFn(ctx, s.categoryCreator, defaultCategories, tenantID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,7 +85,7 @@ func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
 		ids.CategoryIDs = append(ids.CategoryIDs, c.CategoryID)
 	}
 
-	locations, err := seedLocationsFn(ctx, s.locationCreator, defaultLocations)
+	locations, err := seedLocationsFn(ctx, s.locationCreator, defaultLocations, tenantID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,7 +94,7 @@ func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
 		ids.LocationIDs = append(ids.LocationIDs, l.LocationID)
 	}
 
-	products, err := seedProductsFn(ctx, s.productCreator, defaultProducts, ids.CompanyIDs, ids.CategoryIDs, ids.LocationIDs)
+	products, err := seedProductsFn(ctx, s.productCreator, defaultProducts, ids.CompanyIDs, ids.CategoryIDs, ids.LocationIDs, tenantID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,7 +103,7 @@ func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
 		ids.ProductIDs = append(ids.ProductIDs, p.ProductID)
 	}
 
-	inventories, err := seedInventoriesFn(ctx, s.inventoryCreator, defaultInventories, ids.ProductIDs, ids.LocationIDs)
+	inventories, err := seedInventoriesFn(ctx, s.inventoryCreator, defaultInventories, ids.ProductIDs, ids.LocationIDs, tenantID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -105,10 +113,35 @@ func (s *Service) Seed(ctx context.Context) (*SeedResult, *SeededIDs, error) {
 }
 
 func (s *Service) clearTables(ctx context.Context) error {
-	_, err := s.db.Exec(ctx, "TRUNCATE TABLE inventories, products, locations, categories, companies RESTART IDENTITY CASCADE")
+	db := s.db(ctx)
+	_, err := db.Exec(ctx, "DELETE FROM supplier_return_items")
 	if err != nil {
-		return fmt.Errorf("failed to truncate tables: %w", err)
+		return fmt.Errorf("failed to clear supplier_return_items: %w", err)
 	}
-	log.Println("All tables cleared successfully")
+	_, err = db.Exec(ctx, "DELETE FROM supplier_returns")
+	if err != nil {
+		return fmt.Errorf("failed to clear supplier_returns: %w", err)
+	}
+	_, err = db.Exec(ctx, "DELETE FROM inventories")
+	if err != nil {
+		return fmt.Errorf("failed to clear inventories: %w", err)
+	}
+	_, err = db.Exec(ctx, "DELETE FROM products")
+	if err != nil {
+		return fmt.Errorf("failed to clear products: %w", err)
+	}
+	_, err = db.Exec(ctx, "DELETE FROM locations")
+	if err != nil {
+		return fmt.Errorf("failed to clear locations: %w", err)
+	}
+	_, err = db.Exec(ctx, "DELETE FROM categories")
+	if err != nil {
+		return fmt.Errorf("failed to clear categories: %w", err)
+	}
+	_, err = db.Exec(ctx, "DELETE FROM companies")
+	if err != nil {
+		return fmt.Errorf("failed to clear companies: %w", err)
+	}
+	log.Println("All tenant tables cleared successfully")
 	return nil
 }

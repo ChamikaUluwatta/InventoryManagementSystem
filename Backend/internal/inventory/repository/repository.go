@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,25 +21,33 @@ type Repository interface {
 }
 
 type repository struct {
-	db *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) Repository {
-	return &repository{db: db}
+func NewRepository(pool *pgxpool.Pool) Repository {
+	return &repository{pool: pool}
+}
+
+func (r *repository) db(ctx context.Context) database.Querier {
+	if tx, ok := database.GetTx(ctx); ok {
+		return tx
+	}
+	return r.pool
 }
 
 func (r *repository) Create(ctx context.Context, inventory *model.Inventory) error {
 	query := `
-		INSERT INTO "inventories" (product_id, location_id, stock)
-		VALUES (@product_id, @location_id, @stock)
+		INSERT INTO "inventories" (product_id, location_id, stock, tenant_id)
+		VALUES (@product_id, @location_id, @stock, @tenant_id)
 		RETURNING inventory_id`
 
 	args := pgx.NamedArgs{
 		"product_id":  inventory.ProductID,
 		"location_id": inventory.LocationID,
 		"stock":       inventory.Stock,
+		"tenant_id":   inventory.TenantID,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(&inventory.InventoryID)
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&inventory.InventoryID)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -65,7 +74,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.Inventory, err
 	args := pgx.NamedArgs{
 		"inventory_id": id,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(
 		&inventory.InventoryID,
 		&inventory.ProductID,
 		&inventory.LocationID,
@@ -98,7 +107,7 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 		"product_id":  params.ProductID,
 		"location_id": params.LocationID,
 	}
-	rows, err := r.db.Query(ctx, query, args)
+	rows, err := r.db(ctx).Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("failed to get all inventories", err)
 	}
@@ -119,7 +128,7 @@ func (r *repository) Update(ctx context.Context, inventory *model.Inventory) err
 		"stock":        inventory.Stock,
 		"inventory_id": inventory.InventoryID,
 	}
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -144,7 +153,7 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 		"inventory_id": id,
 	}
 
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return apperror.Internal("failed to delete inventory", err)
 	}

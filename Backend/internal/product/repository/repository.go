@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -21,17 +22,24 @@ type Repository interface {
 }
 
 type repository struct {
-	db *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) Repository {
-	return &repository{db: db}
+func NewRepository(pool *pgxpool.Pool) Repository {
+	return &repository{pool: pool}
+}
+
+func (r *repository) db(ctx context.Context) database.Querier {
+	if tx, ok := database.GetTx(ctx); ok {
+		return tx
+	}
+	return r.pool
 }
 
 func (r *repository) Create(ctx context.Context, product *model.Product) error {
 	query := `
-		INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id)
-		VALUES (@product_name, @product_description, @diameter, @width, @company_id, @price, @category_id, @location_id)
+		INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id, tenant_id)
+		VALUES (@product_name, @product_description, @diameter, @width, @company_id, @price, @category_id, @location_id, @tenant_id)
 		RETURNING product_id`
 	args := pgx.NamedArgs{
 		"product_name":        product.ProductName,
@@ -42,8 +50,9 @@ func (r *repository) Create(ctx context.Context, product *model.Product) error {
 		"price":               product.Price,
 		"category_id":         product.CategoryID,
 		"location_id":         product.LocationID,
+		"tenant_id":           product.TenantID,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(&product.ProductID)
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&product.ProductID)
 
 	if err != nil {
 		return apperror.Internal("failed to create product", err)
@@ -74,7 +83,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.GetProdu
 			p.product_id = @product_id`
 
 	var product model.GetProductById
-	err := r.db.QueryRow(ctx, query, pgx.NamedArgs{"product_id": id}).Scan(
+	err := r.db(ctx).QueryRow(ctx, query, pgx.NamedArgs{"product_id": id}).Scan(
 		&product.ProductID,
 		&product.ProductName,
 		&product.ProductDescription,
@@ -117,7 +126,7 @@ func (r *repository) GetAll(ctx context.Context, params model.GetProductsQueryPa
 			p.product_name
 		LIMIT @limit OFFSET @offset`
 
-	rows, err := r.db.Query(ctx, query,
+	rows, err := r.db(ctx).Query(ctx, query,
 		pgx.NamedArgs{
 			"company_id":  params.CompanyID,
 			"category_id": params.CategoryID,
@@ -160,7 +169,7 @@ func (r *repository) Update(ctx context.Context, product *model.Product) error {
 		"category_id":         product.CategoryID,
 		"location_id":         product.LocationID,
 	}
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return apperror.Internal("failed to update product", err)
 	}
@@ -176,7 +185,7 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 	args := pgx.NamedArgs{
 		"product_id": id,
 	}
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return apperror.Internal("failed to delete product", err)
 	}
@@ -209,7 +218,7 @@ func (r *repository) GetAllProductCountBy(ctx context.Context, groupBy string) (
 		return nil, apperror.BadRequest("invalid group_by parameter", nil)
 	}
 
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db(ctx).Query(ctx, query)
 	if err != nil {
 		return nil, apperror.Internal("failed to get product count", err)
 	}

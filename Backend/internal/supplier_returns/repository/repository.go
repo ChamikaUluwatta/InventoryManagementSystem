@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/supplier_returns/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,23 +20,30 @@ type SupplierReturnRepository interface {
 }
 
 type repository struct {
-	db *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) SupplierReturnRepository {
-	return &repository{db: db}
+func NewRepository(pool *pgxpool.Pool) SupplierReturnRepository {
+	return &repository{pool: pool}
+}
+
+func (r *repository) db(ctx context.Context) database.Querier {
+	if tx, ok := database.GetTx(ctx); ok {
+		return tx
+	}
+	return r.pool
 }
 
 func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) error {
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.db(ctx).Begin(ctx)
 	if err != nil {
 		return apperror.Internal("failed to start transaction", err)
 	}
 	defer tx.Rollback(ctx)
 
 	headerQuery := `
-		INSERT INTO "supplier_returns" (return_no, company_id, status, reason, notes)
-		VALUES (@return_no, @company_id, @status, @reason, @notes)
+		INSERT INTO "supplier_returns" (return_no, company_id, status, reason, notes, tenant_id)
+		VALUES (@return_no, @company_id, @status, @reason, @notes, @tenant_id)
 		RETURNING supplier_return_id, created_at, approved_at, completed_at`
 
 	err = tx.QueryRow(ctx, headerQuery, pgx.NamedArgs{
@@ -44,6 +52,7 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 		"status":     model.ReturnStatusDraft,
 		"reason":     req.Reason,
 		"notes":      req.Notes,
+		"tenant_id":  req.TenantID,
 	}).Scan(
 		&req.SupplierReturnID,
 		&req.CreatedAt,
@@ -56,9 +65,9 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 
 	itemQuery := `
     INSERT INTO "supplier_return_items"
-        (supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot)
+        (supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot, tenant_id)
     SELECT @supplier_return_id, @product_id, @location_id, @quantity, @unit_cost,
-           p.product_name, @location_id
+           p.product_name, @location_id, @tenant_id
     FROM "products" p
     WHERE p.product_id = @product_id AND p.company_id = @company_id
     RETURNING supplier_return_item_id,product_name_snapshot, location_snapshot`
@@ -72,6 +81,7 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 			"quantity":           item.Quantity,
 			"unit_cost":          item.UnitCost,
 			"company_id":         req.CompanyID,
+			"tenant_id":          req.TenantID,
 		})
 	}
 
@@ -120,7 +130,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.SupplierReturn
 		WHERE sr.supplier_return_id = @supplier_return_id
 		ORDER BY sri.supplier_return_item_id`
 
-	rows, err := r.db.Query(ctx, query, pgx.NamedArgs{
+	rows, err := r.db(ctx).Query(ctx, query, pgx.NamedArgs{
 		"supplier_return_id": id,
 	})
 	if err != nil {
@@ -178,7 +188,7 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 		"company_id": params.CompanyID,
 	}
 
-	rows, err := r.db.Query(ctx, query, args)
+	rows, err := r.db(ctx).Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("Internal Server Error", err)
 	}
@@ -208,7 +218,7 @@ func (r *repository) UpdateStatus(ctx context.Context, id int, status model.Retu
 		WHERE supplier_return_id = @supplier_return_id
 		RETURNING supplier_return_id, return_no, company_id, status, reason, notes, created_at, approved_at, completed_at`
 
-	rows, err := r.db.Query(ctx, query, pgx.NamedArgs{
+	rows, err := r.db(ctx).Query(ctx, query, pgx.NamedArgs{
 		"supplier_return_id": id,
 		"status":             string(status),
 	})
@@ -227,7 +237,7 @@ func (r *repository) UpdateStatus(ctx context.Context, id int, status model.Retu
 func (r *repository) Delete(ctx context.Context, id int) error {
 	query := `DELETE FROM "supplier_returns" WHERE supplier_return_id = @supplier_return_id`
 
-	result, err := r.db.Exec(ctx, query, pgx.NamedArgs{
+	result, err := r.db(ctx).Exec(ctx, query, pgx.NamedArgs{
 		"supplier_return_id": id,
 	})
 	if err != nil {

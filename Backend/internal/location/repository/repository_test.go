@@ -8,9 +8,11 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location/repository"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/testutil"
+	"github.com/google/uuid"
 )
 
 var testDB *testutil.TestDB
+var testTenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 const migrationPath = "../../database/migrations"
 
@@ -35,6 +37,7 @@ func TestCreate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		loc := model.Location{
 			LocationID: "CREATE-TEST-LOC",
+			TenantID:   testTenantID,
 		}
 		err := repo.Create(t.Context(), &loc)
 		if err != nil {
@@ -55,6 +58,7 @@ func TestCreate(t *testing.T) {
 		loc := model.Location{
 			LocationID: "CREATE-WITH-IMAGE",
 			Image:      &img,
+			TenantID:   testTenantID,
 		}
 		err := repo.Create(t.Context(), &loc)
 		if err != nil {
@@ -73,12 +77,14 @@ func TestCreate(t *testing.T) {
 	t.Run("duplicate location ID returns error", func(t *testing.T) {
 		loc := model.Location{
 			LocationID: "DUP-LOC",
+			TenantID:   testTenantID,
 		}
 		if err := repo.Create(t.Context(), &loc); err != nil {
 			t.Fatalf("first create should succeed, got %v", err)
 		}
 		duplicate := model.Location{
 			LocationID: "DUP-LOC",
+			TenantID:   testTenantID,
 		}
 		err := repo.Create(t.Context(), &duplicate)
 		if err == nil {
@@ -92,6 +98,7 @@ func TestGetByID(t *testing.T) {
 
 	loc := model.Location{
 		LocationID: "GETBYID-LOC",
+		TenantID:   testTenantID,
 	}
 	if err := repo.Create(t.Context(), &loc); err != nil {
 		t.Fatalf("failed to create location: %v", err)
@@ -122,9 +129,9 @@ func TestGetAll(t *testing.T) {
 	repo := repository.NewRepository(testDB.Pool)
 
 	locations := []model.Location{
-		{LocationID: "B-GETALL-LOC"},
-		{LocationID: "A-GETALL-LOC"},
-		{LocationID: "C-GETALL-LOC"},
+		{LocationID: "B-GETALL-LOC", TenantID: testTenantID},
+		{LocationID: "A-GETALL-LOC", TenantID: testTenantID},
+		{LocationID: "C-GETALL-LOC", TenantID: testTenantID},
 	}
 	for i := range locations {
 		if err := repo.Create(t.Context(), &locations[i]); err != nil {
@@ -160,6 +167,7 @@ func TestUpdate(t *testing.T) {
 
 	loc := model.Location{
 		LocationID: "UPDATE-LOC",
+		TenantID:   testTenantID,
 	}
 	if err := repo.Create(t.Context(), &loc); err != nil {
 		t.Fatalf("failed to create location: %v", err)
@@ -170,6 +178,7 @@ func TestUpdate(t *testing.T) {
 		updated := model.Location{
 			LocationID: loc.LocationID,
 			Image:      &img,
+			TenantID:   testTenantID,
 		}
 		if err := repo.Update(t.Context(), &updated); err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -188,6 +197,7 @@ func TestUpdate(t *testing.T) {
 		updated := model.Location{
 			LocationID: loc.LocationID,
 			Image:      nil,
+			TenantID:   testTenantID,
 		}
 		if err := repo.Update(t.Context(), &updated); err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -205,6 +215,7 @@ func TestUpdate(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		nonExistent := model.Location{
 			LocationID: "NONEXIST-UPDATE",
+			TenantID:   testTenantID,
 		}
 		err := repo.Update(t.Context(), &nonExistent)
 		if err == nil {
@@ -221,6 +232,7 @@ func TestDelete(t *testing.T) {
 
 	loc := model.Location{
 		LocationID: "DELETE-LOC",
+		TenantID:   testTenantID,
 	}
 	if err := repo.Create(t.Context(), &loc); err != nil {
 		t.Fatalf("failed to create location: %v", err)

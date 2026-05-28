@@ -12,6 +12,7 @@ import (
 )
 
 var testDB *testutil.TestDB
+var testTenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 const migrationPath = "../../database/migrations"
 
@@ -36,6 +37,7 @@ func TestCreate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		company := model.Company{
 			CompanyName: "Create Test Company",
+			TenantID:    testTenantID,
 		}
 		err := repo.Create(t.Context(), &company)
 		if err != nil {
@@ -57,12 +59,14 @@ func TestCreate(t *testing.T) {
 	t.Run("duplicate name returns error", func(t *testing.T) {
 		company := model.Company{
 			CompanyName: "Duplicate Name Company",
+			TenantID:    testTenantID,
 		}
 		if err := repo.Create(t.Context(), &company); err != nil {
 			t.Fatalf("first create should succeed, got %v", err)
 		}
 		duplicate := model.Company{
 			CompanyName: "Duplicate Name Company",
+			TenantID:    testTenantID,
 		}
 		err := repo.Create(t.Context(), &duplicate)
 		if err == nil {
@@ -76,6 +80,7 @@ func TestGetByID(t *testing.T) {
 
 	company := model.Company{
 		CompanyName: "GetByID Test Company",
+		TenantID:    testTenantID,
 	}
 	if err := repo.Create(t.Context(), &company); err != nil {
 		t.Fatalf("failed to create company: %v", err)
@@ -109,9 +114,9 @@ func TestGetAll(t *testing.T) {
 	repo := repository.NewRepository(testDB.Pool)
 
 	companies := []model.Company{
-		{CompanyName: "BB Test Company"},
-		{CompanyName: "AA Test Company"},
-		{CompanyName: "CC Test Company"},
+		{CompanyName: "BB Test Company", TenantID: testTenantID},
+		{CompanyName: "AA Test Company", TenantID: testTenantID},
+		{CompanyName: "CC Test Company", TenantID: testTenantID},
 	}
 	for i := range companies {
 		if err := repo.Create(t.Context(), &companies[i]); err != nil {
@@ -147,6 +152,7 @@ func TestUpdate(t *testing.T) {
 
 	company := model.Company{
 		CompanyName: "Original Update Company",
+		TenantID:    testTenantID,
 	}
 	if err := repo.Create(t.Context(), &company); err != nil {
 		t.Fatalf("failed to create company: %v", err)
@@ -156,6 +162,7 @@ func TestUpdate(t *testing.T) {
 		updated := model.Company{
 			CompanyID:   company.CompanyID,
 			CompanyName: "Updated Company Name",
+			TenantID:    testTenantID,
 		}
 		if err := repo.Update(t.Context(), &updated); err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -174,6 +181,7 @@ func TestUpdate(t *testing.T) {
 		nonExistent := model.Company{
 			CompanyID:   uuid.New(),
 			CompanyName: "Non-existent",
+			TenantID:    testTenantID,
 		}
 		err := repo.Update(t.Context(), &nonExistent)
 		if err == nil {
@@ -190,6 +198,7 @@ func TestDelete(t *testing.T) {
 
 	company := model.Company{
 		CompanyName: "Delete Me Company",
+		TenantID:    testTenantID,
 	}
 	if err := repo.Create(t.Context(), &company); err != nil {
 		t.Fatalf("failed to create company: %v", err)
@@ -222,26 +231,28 @@ func TestGetCompanyDependencies(t *testing.T) {
 
 	company := model.Company{
 		CompanyName: "Test Company",
+		TenantID:    testTenantID,
 	}
 	if err := repo.Create(t.Context(), &company); err != nil {
 		t.Fatalf("failed to create company: %v", err)
 	}
 	companyZeroDeps := model.Company{
 		CompanyName: "Zero Deps Company",
+		TenantID:    testTenantID,
 	}
 	if err := repo.Create(t.Context(), &companyZeroDeps); err != nil {
 		t.Fatalf("failed to create company: %v", err)
 	}
 	var categoryID int
-	if err := testDB.Pool.QueryRow(t.Context(), `INSERT INTO "categories" (category_name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING category_id`, "Test Category").Scan(&categoryID); err != nil {
+	if err := testDB.Pool.QueryRow(t.Context(), `INSERT INTO "categories" (category_name, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING category_id`, "Test Category", testTenantID).Scan(&categoryID); err != nil {
 		t.Fatalf("failed to create category dependency: %v", err)
 	}
 
-	if _, err := testDB.Pool.Exec(t.Context(), `INSERT INTO "products" (product_name,company_id,category_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, "Test Product", company.CompanyID, categoryID); err != nil {
+	if _, err := testDB.Pool.Exec(t.Context(), `INSERT INTO "products" (product_name,company_id,category_id,tenant_id) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`, "Test Product", company.CompanyID, categoryID, testTenantID); err != nil {
 		t.Fatalf("failed to create product dependency: %v", err)
 	}
 
-	if _, err := testDB.Pool.Exec(t.Context(), `INSERT INTO "supplier_returns" (return_no,company_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, "Test Return", company.CompanyID); err != nil {
+	if _, err := testDB.Pool.Exec(t.Context(), `INSERT INTO "supplier_returns" (return_no,company_id,tenant_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, "Test Return", company.CompanyID, testTenantID); err != nil {
 		t.Fatalf("failed to create supplier return dependency: %v", err)
 	}
 

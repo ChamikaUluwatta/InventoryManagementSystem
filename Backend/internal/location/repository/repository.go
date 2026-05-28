@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,20 +20,28 @@ type Repository interface {
 }
 
 type repository struct {
-	db *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) Repository {
-	return &repository{db: db}
+func NewRepository(pool *pgxpool.Pool) Repository {
+	return &repository{pool: pool}
+}
+
+func (r *repository) db(ctx context.Context) database.Querier {
+	if tx, ok := database.GetTx(ctx); ok {
+		return tx
+	}
+	return r.pool
 }
 
 func (r *repository) Create(ctx context.Context, location *model.Location) error {
-	query := `INSERT INTO "locations" (location_id,image) VALUES (@location_id,@image)`
+	query := `INSERT INTO "locations" (location_id,image,tenant_id) VALUES (@location_id,@image,@tenant_id)`
 	args := pgx.NamedArgs{
 		"location_id": location.LocationID,
 		"image":       location.Image,
+		"tenant_id":   location.TenantID,
 	}
-	_, err := r.db.Exec(ctx, query, args)
+	_, err := r.db(ctx).Exec(ctx, query, args)
 
 	if err != nil {
 		return apperror.Internal("failed to create location", err)
@@ -47,7 +56,7 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 		"location_id": id,
 	}
 
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return apperror.Internal("failed to delete location", err)
 	}
@@ -63,7 +72,7 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 		"limit":  params.Limit,
 		"offset": params.Offset,
 	}
-	rows, err := r.db.Query(ctx, query, args)
+	rows, err := r.db(ctx).Query(ctx, query, args)
 
 	if err != nil {
 		return nil, apperror.Internal("failed to get all locations", err)
@@ -84,7 +93,7 @@ func (r *repository) GetByID(ctx context.Context, id string) (*model.Location, e
 		"location_id": id,
 	}
 	var location model.Location
-	err := r.db.QueryRow(ctx, query, args).Scan(&location.LocationID, &location.Image)
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&location.LocationID, &location.Image)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -105,7 +114,7 @@ func (r *repository) Update(ctx context.Context, location *model.Location) error
 		"location_id": location.LocationID,
 		"image":       location.Image,
 	}
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 
 	if err != nil {
 		return apperror.Internal("failed to update location", err)

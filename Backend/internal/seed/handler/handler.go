@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/seed/service"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -22,7 +24,14 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *Handler) Seed(w http.ResponseWriter, r *http.Request) {
-	_, _, err := h.service.Seed(r.Context())
+	claims := auth.GetClaimsFromContext(r.Context())
+	tenantID, err := uuid.Parse(claims.TenantID)
+	if err != nil {
+		apperror.HandleError(w, apperror.BadRequest("Invalid tenant id", err))
+		return
+	}
+
+	_, _, err = h.service.Seed(r.Context(), tenantID)
 	if err != nil {
 		apperror.HandleError(w, apperror.Internal("seed failed", err))
 		return

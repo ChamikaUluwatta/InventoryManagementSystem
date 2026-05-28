@@ -15,6 +15,7 @@ var (
 	testDB         *testutil.TestDB
 	seedProductID  uuid.UUID
 	seedLocationID string
+	testTenantID   = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 )
 
 const migrationPath = "../../database/migrations"
@@ -30,7 +31,8 @@ func TestMain(m *testing.M) {
 
 	var companyID uuid.UUID
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "companies" (company_name) VALUES ('Test Company') RETURNING company_id`,
+		`INSERT INTO "companies" (company_name, tenant_id) VALUES ('Test Company', $1) RETURNING company_id`,
+		testTenantID,
 	).Scan(&companyID); err != nil {
 		testDB.Close()
 		os.Exit(1)
@@ -38,7 +40,8 @@ func TestMain(m *testing.M) {
 
 	var categoryID int
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "categories" (category_name) VALUES ('Test Category') RETURNING category_id`,
+		`INSERT INTO "categories" (category_name, tenant_id) VALUES ('Test Category', $1) RETURNING category_id`,
+		testTenantID,
 	).Scan(&categoryID); err != nil {
 		testDB.Close()
 		os.Exit(1)
@@ -46,17 +49,17 @@ func TestMain(m *testing.M) {
 
 	seedLocationID = "INV-LOC-1"
 	if _, err := testDB.Pool.Exec(ctx,
-		`INSERT INTO "locations" (location_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-		seedLocationID,
+		`INSERT INTO "locations" (location_id, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		seedLocationID, testTenantID,
 	); err != nil {
 		testDB.Close()
 		os.Exit(1)
 	}
 
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id)
-		 VALUES ('Test Product', 'desc', 1.0, 1.0, $1, 1.0, $2, $3) RETURNING product_id`,
-		companyID, categoryID, seedLocationID,
+		`INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id, tenant_id)
+		 VALUES ('Test Product', 'desc', 1.0, 1.0, $1, 1.0, $2, $3, $4) RETURNING product_id`,
+		companyID, categoryID, seedLocationID, testTenantID,
 	).Scan(&seedProductID); err != nil {
 		testDB.Close()
 		os.Exit(1)
@@ -76,6 +79,7 @@ func TestCreate(t *testing.T) {
 			ProductID:  seedProductID,
 			LocationID: seedLocationID,
 			Stock:      50,
+			TenantID:   testTenantID,
 		}
 		err := repo.Create(t.Context(), &inv)
 		if err != nil {
@@ -91,6 +95,7 @@ func TestCreate(t *testing.T) {
 			ProductID:  uuid.New(),
 			LocationID: seedLocationID,
 			Stock:      10,
+			TenantID:   testTenantID,
 		}
 		_, err := repo.GetByID(t.Context(), 99999)
 		if err == nil {
@@ -109,6 +114,7 @@ func TestCreate(t *testing.T) {
 			ProductID:  seedProductID,
 			LocationID: "NONEXIST-LOC",
 			Stock:      10,
+			TenantID:   testTenantID,
 		}
 		err := repo.Create(t.Context(), &inv)
 		if err == nil {
@@ -121,6 +127,7 @@ func TestCreate(t *testing.T) {
 			ProductID:  seedProductID,
 			LocationID: seedLocationID,
 			Stock:      25,
+			TenantID:   testTenantID,
 		}
 		err := repo.Create(t.Context(), &inv)
 		if err == nil {
@@ -136,10 +143,11 @@ func TestGetByID(t *testing.T) {
 		ProductID:  seedProductID,
 		LocationID: "GETBYID-LOC",
 		Stock:      75,
+		TenantID:   testTenantID,
 	}
 	if _, err := testDB.Pool.Exec(t.Context(),
-		`INSERT INTO "locations" (location_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-		"GETBYID-LOC",
+		`INSERT INTO "locations" (location_id, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		"GETBYID-LOC", testTenantID,
 	); err != nil {
 		t.Fatalf("failed to insert location: %v", err)
 	}
@@ -224,8 +232,8 @@ func TestUpdate(t *testing.T) {
 
 	locID := "UPDATE-LOC"
 	if _, err := testDB.Pool.Exec(t.Context(),
-		`INSERT INTO "locations" (location_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-		locID,
+		`INSERT INTO "locations" (location_id, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		locID, testTenantID,
 	); err != nil {
 		t.Fatalf("failed to insert location: %v", err)
 	}
@@ -234,6 +242,7 @@ func TestUpdate(t *testing.T) {
 		ProductID:  seedProductID,
 		LocationID: locID,
 		Stock:      30,
+		TenantID:   testTenantID,
 	}
 	if err := repo.Create(t.Context(), &inv); err != nil {
 		t.Fatalf("failed to create inventory: %v", err)
@@ -245,6 +254,7 @@ func TestUpdate(t *testing.T) {
 			ProductID:   seedProductID,
 			LocationID:  locID,
 			Stock:       500,
+			TenantID:    testTenantID,
 		}
 		if err := repo.Update(t.Context(), &updated); err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -265,6 +275,7 @@ func TestUpdate(t *testing.T) {
 			ProductID:   seedProductID,
 			LocationID:  locID,
 			Stock:       10,
+			TenantID:    testTenantID,
 		}
 		err := repo.Update(t.Context(), &nonExistent)
 		if err == nil {
@@ -281,8 +292,8 @@ func TestDelete(t *testing.T) {
 
 	locID := "DELETE-LOC"
 	if _, err := testDB.Pool.Exec(t.Context(),
-		`INSERT INTO "locations" (location_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-		locID,
+		`INSERT INTO "locations" (location_id, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		locID, testTenantID,
 	); err != nil {
 		t.Fatalf("failed to insert location: %v", err)
 	}
@@ -291,6 +302,7 @@ func TestDelete(t *testing.T) {
 		ProductID:  seedProductID,
 		LocationID: locID,
 		Stock:      10,
+		TenantID:   testTenantID,
 	}
 	if err := repo.Create(t.Context(), &inv); err != nil {
 		t.Fatalf("failed to create inventory: %v", err)

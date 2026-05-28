@@ -19,6 +19,7 @@ var (
 	seedLocationID  string
 	seedCategoryID2 int
 	seedLocationID2 string
+	testTenantID    = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 )
 
 const migrationPath = "../../database/migrations"
@@ -33,14 +34,16 @@ func TestMain(m *testing.M) {
 	testDB = db
 
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "companies" (company_name) VALUES ('Test Company') RETURNING company_id`,
+		`INSERT INTO "companies" (company_name, tenant_id) VALUES ('Test Company', $1) RETURNING company_id`,
+		testTenantID,
 	).Scan(&seedCompanyID); err != nil {
 		testDB.Close()
 		os.Exit(1)
 	}
 
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "categories" (category_name) VALUES ('Test Category') RETURNING category_id`,
+		`INSERT INTO "categories" (category_name, tenant_id) VALUES ('Test Category', $1) RETURNING category_id`,
+		testTenantID,
 	).Scan(&seedCategoryID); err != nil {
 		testDB.Close()
 		os.Exit(1)
@@ -48,8 +51,8 @@ func TestMain(m *testing.M) {
 
 	seedLocationID = "TEST-LOC-1"
 	if _, err := testDB.Pool.Exec(ctx,
-		`INSERT INTO "locations" (location_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-		seedLocationID,
+		`INSERT INTO "locations" (location_id, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		seedLocationID, testTenantID,
 	); err != nil {
 		testDB.Close()
 		os.Exit(1)
@@ -74,6 +77,7 @@ func TestCreate(t *testing.T) {
 			Price:              decimal.NewFromFloat(9.99),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		}
 		err := repo.Create(t.Context(), &req)
 		if err != nil {
@@ -94,6 +98,7 @@ func TestCreate(t *testing.T) {
 			Price:              decimal.NewFromFloat(1.0),
 			CategoryID:         99999,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		}
 		err := repo.Create(t.Context(), &req)
 		if err == nil {
@@ -111,6 +116,7 @@ func TestCreate(t *testing.T) {
 			Price:              decimal.NewFromFloat(1.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		}
 		err := repo.Create(t.Context(), &req)
 		if err == nil {
@@ -128,6 +134,7 @@ func TestCreate(t *testing.T) {
 			Price:              decimal.NewFromFloat(3.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		}
 		if err := repo.Create(t.Context(), &req); err != nil {
 			t.Fatalf("first create should succeed, got %v", err)
@@ -151,6 +158,7 @@ func TestGetByID(t *testing.T) {
 		Price:              decimal.NewFromFloat(9.99),
 		CategoryID:         seedCategoryID,
 		LocationID:         seedLocationID,
+		TenantID:           testTenantID,
 	}
 	err := repo.Create(t.Context(), &req)
 	if err != nil {
@@ -168,8 +176,8 @@ func TestGetByID(t *testing.T) {
 	})
 
 	_, err = testDB.Pool.Exec(t.Context(),
-		`INSERT INTO "inventories" (product_id, location_id, stock) VALUES ($1, $2, $3)`,
-		req.ProductID, seedLocationID, int32(50),
+		`INSERT INTO "inventories" (product_id, location_id, stock, tenant_id) VALUES ($1, $2, $3, $4)`,
+		req.ProductID, seedLocationID, int32(50), testTenantID,
 	)
 	if err != nil {
 		t.Fatalf("failed to create inventory: %v", err)
@@ -204,7 +212,8 @@ func TestGetAll(t *testing.T) {
 
 	var catID2 int
 	err := testDB.Pool.QueryRow(t.Context(),
-		`INSERT INTO "categories" (category_name) VALUES ('Category Two') RETURNING category_id`,
+		`INSERT INTO "categories" (category_name, tenant_id) VALUES ('Category Two', $1) RETURNING category_id`,
+		testTenantID,
 	).Scan(&catID2)
 	if err != nil {
 		t.Fatalf("failed to create second category: %v", err)
@@ -220,6 +229,7 @@ func TestGetAll(t *testing.T) {
 			Price:              decimal.NewFromFloat(1.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		},
 		{
 			ProductName:        "BB GetAll Product",
@@ -230,6 +240,7 @@ func TestGetAll(t *testing.T) {
 			Price:              decimal.NewFromFloat(2.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		},
 		{
 			ProductName:        "CC Different Category",
@@ -240,6 +251,7 @@ func TestGetAll(t *testing.T) {
 			Price:              decimal.NewFromFloat(3.0),
 			CategoryID:         catID2,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		},
 	}
 
@@ -328,6 +340,7 @@ func TestUpdate(t *testing.T) {
 		Price:              decimal.NewFromFloat(4.99),
 		CategoryID:         seedCategoryID,
 		LocationID:         seedLocationID,
+		TenantID:           testTenantID,
 	}
 	err := repo.Create(t.Context(), &req)
 	if err != nil {
@@ -335,8 +348,8 @@ func TestUpdate(t *testing.T) {
 	}
 
 	_, err = testDB.Pool.Exec(t.Context(),
-		`INSERT INTO "inventories" (product_id, location_id, stock) VALUES ($1, $2, $3)`,
-		req.ProductID, seedLocationID, int32(10),
+		`INSERT INTO "inventories" (product_id, location_id, stock, tenant_id) VALUES ($1, $2, $3, $4)`,
+		req.ProductID, seedLocationID, int32(10), testTenantID,
 	)
 	if err != nil {
 		t.Fatalf("failed to create inventory: %v", err)
@@ -353,6 +366,7 @@ func TestUpdate(t *testing.T) {
 			Price:              decimal.NewFromFloat(14.99),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		}
 		if err := repo.Update(t.Context(), &updated); err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -390,6 +404,7 @@ func TestUpdate(t *testing.T) {
 			Price:              decimal.NewFromFloat(1.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		}
 		err := repo.Update(t.Context(), &nonExistent)
 		if err == nil {
@@ -411,6 +426,7 @@ func TestUpdate(t *testing.T) {
 			Price:              decimal.NewFromFloat(1.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         "non exist",
+			TenantID:           testTenantID,
 		}
 		if err := repo.Update(t.Context(), &wrongLocation); err == nil {
 			t.Fatal("expected error, got nil")
@@ -430,6 +446,7 @@ func TestDelete(t *testing.T) {
 		Price:              decimal.NewFromFloat(1.0),
 		CategoryID:         seedCategoryID,
 		LocationID:         seedLocationID,
+		TenantID:           testTenantID,
 	}
 	err := repo.Create(t.Context(), &req)
 	if err != nil {
@@ -467,12 +484,12 @@ func TestProductCount(t *testing.T) {
 		t.Fatalf("failed to clear products: %v", err)
 	}
 
-	err := testDB.Pool.QueryRow(t.Context(), `INSERT INTO categories (category_name) VALUES ($1) RETURNING category_id`, "TestCategory2").Scan(&seedCategoryID2)
+	err := testDB.Pool.QueryRow(t.Context(), `INSERT INTO categories (category_name, tenant_id) VALUES ($1, $2) RETURNING category_id`, "TestCategory2", testTenantID).Scan(&seedCategoryID2)
 	if err != nil {
 		t.Fatalf("failed to create categories: %v", err)
 	}
 
-	err = testDB.Pool.QueryRow(t.Context(), `INSERT INTO locations (location_id) VALUES ($1) RETURNING location_id`, "TEST-LOC-2").Scan(&seedLocationID2)
+	err = testDB.Pool.QueryRow(t.Context(), `INSERT INTO locations (location_id, tenant_id) VALUES ($1, $2) RETURNING location_id`, "TEST-LOC-2", testTenantID).Scan(&seedLocationID2)
 	if err != nil {
 		t.Fatalf("failed to create locations: %v", err)
 	}
@@ -487,6 +504,7 @@ func TestProductCount(t *testing.T) {
 			Price:              decimal.NewFromFloat(1.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		},
 		{
 			ProductName:        "Count Product 2",
@@ -497,6 +515,7 @@ func TestProductCount(t *testing.T) {
 			Price:              decimal.NewFromFloat(2.0),
 			CategoryID:         seedCategoryID2,
 			LocationID:         seedLocationID2,
+			TenantID:           testTenantID,
 		},
 		{
 			ProductName:        "Count Product 3",
@@ -507,6 +526,7 @@ func TestProductCount(t *testing.T) {
 			Price:              decimal.NewFromFloat(3.0),
 			CategoryID:         seedCategoryID,
 			LocationID:         seedLocationID,
+			TenantID:           testTenantID,
 		},
 	}
 
