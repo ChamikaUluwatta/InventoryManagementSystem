@@ -1,8 +1,12 @@
-import type { Product } from '@/types/product'
+import type { Product, CategoryProductCount } from '@/types/product'
 import { apiFetch } from '@/lib/api'
 
+export const getProductCountsByCategory = async (): Promise<CategoryProductCount[]> => {
+  return apiFetch<CategoryProductCount[]>('/products/counts?group_by=category')
+}
+
 export const getAllProducts = async (): Promise<Product[]> => {
-  return apiFetch<Product[]>('/products')
+  return apiFetch<Product[]>('/products?limit=100')
 }
 
 export const getProductById = async (id: string): Promise<Product> => {
@@ -32,5 +36,9 @@ export const deleteProduct = async (id: string): Promise<void> => {
 }
 
 export const getProductsByCompany = async (companyId: string): Promise<Product[]> => {
-  return apiFetch<Product[]>(`/products?company=${encodeURIComponent(companyId)}`)
+  return apiFetch<Product[]>(`/products?company=${encodeURIComponent(companyId)}&limit=100`)
+}
+
+export const getProductsByCategory = async (categoryId: number): Promise<Product[]> => {
+  return apiFetch<Product[]>(`/products?category=${categoryId}&limit=100`)
 }

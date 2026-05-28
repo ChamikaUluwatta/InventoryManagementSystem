@@ -42,12 +42,12 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --radius-sm: calc(var(--radius) * 0.5);
-  --radius-md: calc(var(--radius) * 0.5);
-  --radius-lg: calc(var(--radius) * 0.5);
-  --radius-xl: calc(var(--radius) * 0.5);
-  --radius-2xl: calc(var(--radius) * 0.5);
-  --radius-3xl: calc(var(--radius) * 0.5);
-  --radius-4xl: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 2);
+  --radius-xl: calc(var(--radius) * 4);
+  --radius-2xl: calc(var(--radius) * 8);
+  --radius-3xl: calc(var(--radius) * 12);
+  --radius-4xl: calc(var(--radius) * 16);
 }
 
 /* Industrial-Utilitarian Color Palette */
@@ -170,7 +170,7 @@
   }
   
   .table-industrial th {
-    @apply bg-muted text-xs uppercase tracking-wider font-medium text-muted-foreground border-b border-border px-3 py-2 text-left;
+    @apply bg-muted text-xs uppercase tracking-wider font-medium text-muted-foreground border-b border-border px-3 py-2;
   }
   
   .table-industrial td {

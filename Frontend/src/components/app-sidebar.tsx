@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarHeader,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail,
 } from '@/components/ui/sidebar'
 import {
   PackageIcon, HomeIcon, WarehouseIcon,
   RotateCcwIcon, MapPinIcon, TagsIcon, Building2Icon,
 } from 'lucide-react'
+import { NavUser } from './nav-user'
 
 const navItems = [
   { title: 'Home', url: '/', icon: HomeIcon },
@@ -61,6 +62,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
+
       <SidebarRail />
     </Sidebar>
   )

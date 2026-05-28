@@ -12,3 +12,9 @@ export interface Product {
 }
 
 export type CreateProductRequest = Omit<Product, 'product_id' | 'stock'>
+
+export interface CategoryProductCount {
+  category_id: number
+  category_name: string
+  product_count: number
+}

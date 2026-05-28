@@ -192,6 +192,9 @@ export default function CategorySheetContent({ category, onClose, onSuccess }: P
               <div className="border-t border-border">
                 <DataCell label="PARENT CATEGORY" value={parentName} />
               </div>
+              <div className="border-t border-border">
+                <DataCell label="PRODUCT COUNT" value={localCategory.product_count?.toString() ?? '0'} />
+              </div>
             </div>
           </div>
         ) : (
