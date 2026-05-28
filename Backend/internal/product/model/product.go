@@ -15,7 +15,7 @@ type Product struct {
 	Price              decimal.Decimal `db:"price"        json:"price"`
 	CategoryID         int             `db:"category_id"  json:"category_id"`
 	LocationID         string          `db:"location_id"  json:"location_id"`
-	TenantID           uuid.UUID       `db:"tenant_id"    json:"tenant_id"`
+	TenantID           uuid.UUID       `db:"tenant_id"    json:"-"`
 }
 type GetProductById struct {
 	Product

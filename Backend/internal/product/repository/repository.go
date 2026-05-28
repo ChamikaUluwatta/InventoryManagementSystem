@@ -38,8 +38,8 @@ func (r *repository) db(ctx context.Context) database.Querier {
 
 func (r *repository) Create(ctx context.Context, product *model.Product) error {
 	query := `
-		INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id, tenant_id)
-		VALUES (@product_name, @product_description, @diameter, @width, @company_id, @price, @category_id, @location_id, @tenant_id)
+		INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id)
+		VALUES (@product_name, @product_description, @diameter, @width, @company_id, @price, @category_id, @location_id)
 		RETURNING product_id`
 	args := pgx.NamedArgs{
 		"product_name":        product.ProductName,
@@ -50,7 +50,6 @@ func (r *repository) Create(ctx context.Context, product *model.Product) error {
 		"price":               product.Price,
 		"category_id":         product.CategoryID,
 		"location_id":         product.LocationID,
-		"tenant_id":           product.TenantID,
 	}
 	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&product.ProductID)
 
@@ -72,6 +71,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.GetProdu
 			p.price, 
 			p.category_id, 
 			p.location_id,
+			p.tenant_id,
 			COALESCE(i.stock, 0)
 		FROM 
 			"products" p
@@ -93,6 +93,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.GetProdu
 		&product.Price,
 		&product.CategoryID,
 		&product.LocationID,
+		&product.TenantID,
 		&product.Stock,
 	)
 
@@ -116,7 +117,8 @@ func (r *repository) GetAll(ctx context.Context, params model.GetProductsQueryPa
 			p.company_id, 
 			p.price, 
 			p.category_id, 
-			p.location_id
+			p.location_id,
+			p.tenant_id
 		FROM "products" p  
 		where 
 			(@company_id::uuid IS NULL OR p.company_id = @company_id::uuid) 

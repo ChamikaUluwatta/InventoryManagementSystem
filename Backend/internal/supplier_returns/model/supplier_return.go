@@ -29,7 +29,7 @@ type SupplierReturn struct {
 	CreatedAt        time.Time            `db:"created_at"         json:"created_at"`
 	ApprovedAt       *time.Time           `db:"approved_at"        json:"approved_at,omitempty"`
 	CompletedAt      *time.Time           `db:"completed_at"       json:"completed_at,omitempty"`
-	TenantID         uuid.UUID            `db:"tenant_id"          json:"tenant_id"`
+	TenantID         uuid.UUID            `db:"tenant_id"          json:"-"`
 	Items            []SupplierReturnItem `db:"-" json:"items,omitempty"`
 }
 
@@ -40,7 +40,7 @@ type SupplierReturnItem struct {
 	LocationID           *string         `db:"location_id"             json:"location_id,omitempty"`
 	Quantity             int             `db:"quantity"                json:"quantity"`
 	UnitCost             decimal.Decimal `db:"unit_cost"               json:"unit_cost"`
-	TenantID             uuid.UUID       `db:"tenant_id"               json:"tenant_id"`
+	TenantID             uuid.UUID       `db:"tenant_id"               json:"-"`
 
 	ProductNameSnapshot string `db:"product_name_snapshot" json:"product_name_snapshot"`
 	LocationSnapshot    string `db:"location_snapshot"     json:"location_snapshot"`

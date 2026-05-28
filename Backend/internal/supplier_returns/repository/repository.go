@@ -42,8 +42,8 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 	defer tx.Rollback(ctx)
 
 	headerQuery := `
-		INSERT INTO "supplier_returns" (return_no, company_id, status, reason, notes, tenant_id)
-		VALUES (@return_no, @company_id, @status, @reason, @notes, @tenant_id)
+		INSERT INTO "supplier_returns" (return_no, company_id, status, reason, notes)
+		VALUES (@return_no, @company_id, @status, @reason, @notes)
 		RETURNING supplier_return_id, created_at, approved_at, completed_at`
 
 	err = tx.QueryRow(ctx, headerQuery, pgx.NamedArgs{
@@ -52,7 +52,6 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 		"status":     model.ReturnStatusDraft,
 		"reason":     req.Reason,
 		"notes":      req.Notes,
-		"tenant_id":  req.TenantID,
 	}).Scan(
 		&req.SupplierReturnID,
 		&req.CreatedAt,
@@ -65,9 +64,9 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 
 	itemQuery := `
     INSERT INTO "supplier_return_items"
-        (supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot, tenant_id)
+        (supplier_return_id, product_id, location_id, quantity, unit_cost, product_name_snapshot, location_snapshot)
     SELECT @supplier_return_id, @product_id, @location_id, @quantity, @unit_cost,
-           p.product_name, @location_id, @tenant_id
+           p.product_name, @location_id
     FROM "products" p
     WHERE p.product_id = @product_id AND p.company_id = @company_id
     RETURNING supplier_return_item_id,product_name_snapshot, location_snapshot`
@@ -81,7 +80,6 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 			"quantity":           item.Quantity,
 			"unit_cost":          item.UnitCost,
 			"company_id":         req.CompanyID,
-			"tenant_id":          req.TenantID,
 		})
 	}
 
@@ -123,8 +121,8 @@ func (r *repository) Create(ctx context.Context, req *model.SupplierReturn) erro
 func (r *repository) GetByID(ctx context.Context, id int) (*model.SupplierReturn, error) {
 	query := `
 		SELECT
-			sr.supplier_return_id, sr.return_no, sr.company_id, sr.status, sr.reason, sr.notes, sr.created_at, sr.approved_at, sr.completed_at,
-			sri.supplier_return_item_id, sri.product_id, sri.location_id, sri.quantity, sri.unit_cost, sri.product_name_snapshot, sri.location_snapshot
+			sr.supplier_return_id, sr.return_no, sr.company_id, sr.status, sr.reason, sr.notes, sr.created_at, sr.approved_at, sr.completed_at, sr.tenant_id,
+			sri.supplier_return_item_id, sri.product_id, sri.location_id, sri.quantity, sri.unit_cost, sri.product_name_snapshot, sri.location_snapshot, sri.tenant_id
 		FROM "supplier_returns" sr
 		LEFT JOIN "supplier_return_items" sri ON sri.supplier_return_id = sr.supplier_return_id
 		WHERE sr.supplier_return_id = @supplier_return_id
@@ -144,9 +142,9 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.SupplierReturn
 		var item model.SupplierReturnItem
 		if err := rows.Scan(
 			&header.SupplierReturnID, &header.ReturnNo, &header.CompanyID, &header.Status, &header.Reason, &header.Notes,
-			&header.CreatedAt, &header.ApprovedAt, &header.CompletedAt,
+			&header.CreatedAt, &header.ApprovedAt, &header.CompletedAt, &header.TenantID,
 			&item.SupplierReturnItemID, &item.ProductID, &item.LocationID, &item.Quantity, &item.UnitCost,
-			&item.ProductNameSnapshot, &item.LocationSnapshot,
+			&item.ProductNameSnapshot, &item.LocationSnapshot, &item.TenantID,
 		); err != nil {
 			return nil, apperror.Internal("Internal Server Error", err)
 		}
@@ -176,7 +174,8 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 			notes, 
 			created_at, 
 			approved_at, 
-			completed_at
+			completed_at,
+			tenant_id
 		FROM "supplier_returns"
 		WHERE (@company_id::uuid IS NULL OR company_id = @company_id::uuid)
 		ORDER BY created_at DESC, supplier_return_id DESC
@@ -216,7 +215,7 @@ func (r *repository) UpdateStatus(ctx context.Context, id int, status model.Retu
 				ELSE completed_at
 			END
 		WHERE supplier_return_id = @supplier_return_id
-		RETURNING supplier_return_id, return_no, company_id, status, reason, notes, created_at, approved_at, completed_at`
+		RETURNING supplier_return_id, return_no, company_id, status, reason, notes, created_at, approved_at, completed_at, tenant_id`
 
 	rows, err := r.db(ctx).Query(ctx, query, pgx.NamedArgs{
 		"supplier_return_id": id,

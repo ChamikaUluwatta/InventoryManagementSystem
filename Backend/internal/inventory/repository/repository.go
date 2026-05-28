@@ -37,15 +37,14 @@ func (r *repository) db(ctx context.Context) database.Querier {
 
 func (r *repository) Create(ctx context.Context, inventory *model.Inventory) error {
 	query := `
-		INSERT INTO "inventories" (product_id, location_id, stock, tenant_id)
-		VALUES (@product_id, @location_id, @stock, @tenant_id)
+		INSERT INTO "inventories" (product_id, location_id, stock)
+		VALUES (@product_id, @location_id, @stock)
 		RETURNING inventory_id`
 
 	args := pgx.NamedArgs{
 		"product_id":  inventory.ProductID,
 		"location_id": inventory.LocationID,
 		"stock":       inventory.Stock,
-		"tenant_id":   inventory.TenantID,
 	}
 	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&inventory.InventoryID)
 
@@ -66,7 +65,7 @@ func (r *repository) Create(ctx context.Context, inventory *model.Inventory) err
 
 func (r *repository) GetByID(ctx context.Context, id int) (*model.Inventory, error) {
 	query := `
-		SELECT inventory_id, product_id, location_id, stock
+		SELECT inventory_id, product_id, location_id, stock, tenant_id
 		FROM "inventories"
 		WHERE inventory_id = @inventory_id`
 
@@ -79,6 +78,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.Inventory, err
 		&inventory.ProductID,
 		&inventory.LocationID,
 		&inventory.Stock,
+		&inventory.TenantID,
 	)
 
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.Inventory, err
 
 func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Inventory, error) {
 	query := `
-		SELECT inventory_id, product_id, location_id, stock
+		SELECT inventory_id, product_id, location_id, stock, tenant_id
 		FROM "inventories"
 		WHERE
 			(@product_id::uuid IS NULL OR product_id = @product_id::uuid)

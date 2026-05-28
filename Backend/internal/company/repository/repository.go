@@ -39,14 +39,13 @@ func (r *repository) db(ctx context.Context) database.Querier {
 
 func (r *repository) Create(ctx context.Context, company *model.Company) error {
 	query := `
-		INSERT INTO "companies" (company_name, description, tenant_id)
-		VALUES (@company_name, @description, @tenant_id)
+		INSERT INTO "companies" (company_name, description)
+		VALUES (@company_name, @description)
 		RETURNING company_id`
 
 	args := pgx.NamedArgs{
 		"company_name": company.CompanyName,
 		"description":  company.Description,
-		"tenant_id":    company.TenantID,
 	}
 	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&company.CompanyID)
 
@@ -62,7 +61,7 @@ func (r *repository) Create(ctx context.Context, company *model.Company) error {
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company, error) {
 	query := `
-		SELECT company_id, company_name, description
+		SELECT company_id, company_name, description, tenant_id
 		FROM "companies"
 		WHERE company_id = @company_id`
 
@@ -74,6 +73,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company,
 		&company.CompanyID,
 		&company.CompanyName,
 		&company.Description,
+		&company.TenantID,
 	)
 
 	if err != nil {
@@ -87,7 +87,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company,
 
 func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Company, error) {
 	query := `
-		SELECT company_id, company_name, description
+		SELECT company_id, company_name, description, tenant_id
 		FROM "companies"
 		ORDER BY company_name
 		LIMIT @limit OFFSET @offset`

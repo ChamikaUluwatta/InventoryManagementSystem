@@ -35,11 +35,10 @@ func (r *repository) db(ctx context.Context) database.Querier {
 }
 
 func (r *repository) Create(ctx context.Context, location *model.Location) error {
-	query := `INSERT INTO "locations" (location_id,image,tenant_id) VALUES (@location_id,@image,@tenant_id)`
+	query := `INSERT INTO "locations" (location_id,image) VALUES (@location_id,@image)`
 	args := pgx.NamedArgs{
 		"location_id": location.LocationID,
 		"image":       location.Image,
-		"tenant_id":   location.TenantID,
 	}
 	_, err := r.db(ctx).Exec(ctx, query, args)
 
@@ -67,7 +66,7 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 }
 
 func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Location, error) {
-	query := `SELECT location_id,image FROM "locations" ORDER BY location_id LIMIT @limit OFFSET @offset`
+	query := `SELECT location_id, image, tenant_id FROM "locations" ORDER BY location_id LIMIT @limit OFFSET @offset`
 	args := pgx.NamedArgs{
 		"limit":  params.Limit,
 		"offset": params.Offset,
@@ -88,12 +87,12 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 }
 
 func (r *repository) GetByID(ctx context.Context, id string) (*model.Location, error) {
-	query := `SELECT location_id,image FROM "locations" WHERE location_id = @location_id`
+	query := `SELECT location_id, image, tenant_id FROM "locations" WHERE location_id = @location_id`
 	args := pgx.NamedArgs{
 		"location_id": id,
 	}
 	var location model.Location
-	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&location.LocationID, &location.Image)
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&location.LocationID, &location.Image, &location.TenantID)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

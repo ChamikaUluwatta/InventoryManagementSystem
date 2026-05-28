@@ -7,7 +7,7 @@ type Inventory struct {
 	ProductID   uuid.UUID `db:"product_id"   json:"product_id"`
 	LocationID  string    `db:"location_id"  json:"location_id"`
 	Stock       int       `db:"stock"        json:"stock"`
-	TenantID    uuid.UUID `db:"tenant_id"    json:"tenant_id"`
+	TenantID    uuid.UUID `db:"tenant_id"    json:"-"`
 }
 
 type QueryParams struct {
