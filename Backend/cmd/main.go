@@ -26,7 +26,7 @@ func main() {
 	r.Use(server.RecoverPanic)
 	r.Use(server.Logger)
 	r.Use(server.SecureHeaders)
-	r.Use(server.CheckCORS)
+	// r.Use(server.CheckCORS)
 
 	server.SetupRoutes(r, db)
 

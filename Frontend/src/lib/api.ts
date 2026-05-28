@@ -1,12 +1,6 @@
 import { getAccessToken, attemptRefresh } from './tokenStore'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-
-if (!API_BASE_URL && import.meta.env.MODE === 'production') {
-  console.warn('VITE_API_URL environment variable is not set')
-}
-
-const API_BASE = API_BASE_URL || 'http://localhost:8080/api/v1'
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
 export async function apiFetch<T>(
   path: string,

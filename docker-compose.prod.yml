@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -6,19 +8,17 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?error}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?error}
       - POSTGRES_DB=${POSTGRES_DB?error}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    profiles:
-      - dockerDB
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: inventory-redis
-    ports:
-      - "6379:6379"
-    profiles:
-      - dockerDB
+    volumes:
+      - redis_data:/var/lib/redis/data
+    restart: unless-stopped
+
   auth-service:
     build:
       context: ./AuthService
@@ -31,54 +31,40 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      postgres:
-        condition: service_started
-        required: false
-      redis:
-        condition: service_started
-        required: false
-    ports:
-      - "8081:8081"
-    profiles:
-      - dockerDB
+      - postgres
+      - redis
+    restart: unless-stopped
+
   backend:
     build:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: inventory-backend
     environment:
-      - DB_HOST=${DB_HOST_DOCKER?error}
+      - DB_HOST=postgres
       - SERVER_PORT=${SERVER_PORT?error}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS?error}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - AUTH_JWKS_URL=http://auth-service:8081/api/v1/auth/.well-known/jwks.json
     depends_on:
-      postgres:
-        condition: service_started
-        required: false
-      redis:
-        condition: service_started
-        required: false
-      auth-service:
-        condition: service_started
-        required: false
-    ports:
-      - "8080:8080"
-    profiles:
-      - dockerDB
-      - localDB
-  frontend:
+      - postgres
+      - redis
+      - auth-service
+    restart: unless-stopped
+
+  nginx:
     build:
-      context: ./Frontend
-      dockerfile: Dockerfile
-    container_name: inventory-frontend
+      context: .
+      dockerfile: nginx/Dockerfile
+    container_name: inventory-nginx
     ports:
-      - "5173:5173"
+      - "80:80"
     depends_on:
       - backend
-    profiles:
-      - dockerDB
-      - localDB
+      - auth-service
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  redis_data:
