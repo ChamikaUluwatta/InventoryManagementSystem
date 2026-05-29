@@ -19,6 +19,8 @@ app:
   jwt:
     access-token-expiration-ms: 900000
     refresh-token-expiration-ms: 2592000000
+    rsa:
+      private-key-path: ${JWT_PRIVATE_KEY_PATH:}
   auth:
     refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:false}
   inventory:

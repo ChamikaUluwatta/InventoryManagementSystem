@@ -6,8 +6,10 @@ services:
     container_name: inventory-db
     environment:
       - POSTGRES_USER=${POSTGRES_USER?error}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?error}
       - POSTGRES_DB=${POSTGRES_DB?error}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    secrets:
+      - db_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -24,15 +26,21 @@ services:
       context: ./AuthService
       dockerfile: Dockerfile
     container_name: inventory-auth
-    environment:
-      - DB_URL=jdbc:postgresql://postgres:5432/auth_db
-      - DB_USERNAME=${POSTGRES_USER?error}
-      - DB_PASSWORD=${POSTGRES_PASSWORD?error}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
     depends_on:
       - postgres
       - redis
+    secrets:
+      - db_password
+      - jwt_private_key
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/auth_db
+      - DB_USERNAME=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REFRESH_COOKIE_SECURE=true
+      - INVENTORY_SERVICE_URL=http://backend:8080
+      - JWT_PRIVATE_KEY_PATH=/run/secrets/jwt_private_key
+      - SPRING_PROFILES_ACTIVE=prod
     restart: unless-stopped
 
   backend:
@@ -40,17 +48,17 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: inventory-backend
-    environment:
-      - DB_HOST=postgres
-      - SERVER_PORT=${SERVER_PORT?error}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS?error}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - AUTH_JWKS_URL=http://auth-service:8081/api/v1/auth/.well-known/jwks.json
     depends_on:
       - postgres
       - redis
       - auth-service
+    secrets:
+      - db_password
+    environment:
+      - SERVER_PORT=${SERVER_PORT?error}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_JWKS_URL=http://auth-service:8081/api/v1/auth/.well-known/jwks.json
     restart: unless-stopped
 
   nginx:
@@ -61,9 +69,15 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
       - auth-service
+      - backend
     restart: unless-stopped
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  jwt_private_key:
+    file: ./secrets/jwt_private_key.pem
 
 volumes:
   postgres_data:
