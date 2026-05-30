@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -24,6 +25,7 @@ func TestMain(m *testing.M) {
 	ctx := context.Background()
 	db, err := testutil.SetupTestDB(ctx, migrationsDir)
 	if err != nil {
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 	testDB = db

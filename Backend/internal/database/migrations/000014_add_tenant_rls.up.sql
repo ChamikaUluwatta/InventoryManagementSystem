@@ -1,29 +1,29 @@
 ALTER TABLE categories
-    ADD COLUMN tenant_id UUID NOT NULL,
+    ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE companies
-    ADD COLUMN tenant_id UUID NOT NULL,
+    ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE products
-    ADD COLUMN tenant_id UUID NOT NULL,
+    ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE locations
-    ADD COLUMN tenant_id UUID NOT NULL,
+    ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE inventories
-    ADD COLUMN tenant_id UUID NOT NULL,
+    ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE supplier_returns
-    ADD COLUMN tenant_id UUID NOT NULL,
+    ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE supplier_return_items
-    ADD COLUMN tenant_id UUID NOT NULL,
+    ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON categories

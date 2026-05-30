@@ -1,6 +1,8 @@
 package com.inventory.auth.repository;
 
+import com.inventory.auth.model.Tenant;
 import com.inventory.auth.model.User;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -20,17 +22,33 @@ class UserRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private TenantRepository tenantRepository;
+
+    private Tenant testTenant;
+
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
 
+    @BeforeEach
+    void setUp() {
+        testTenant = new Tenant();
+        testTenant.setTenantName("test-tenant");
+        testTenant = tenantRepository.save(testTenant);
+    }
+
+    private User createUser(String email) {
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword("hashed-password");
+        user.setTenant(testTenant);
+        return user;
+    }
 
     @Test
     void savePersistsUser() {
-        User user = new User();
-        user.setEmail("save@example.com");
-        user.setPassword("hashed-password");
-
+        User user = createUser("save@example.com");
         User saved = userRepository.save(user);
 
         assertThat(saved.getId()).isNotNull();
@@ -40,10 +58,7 @@ class UserRepositoryTest {
 
     @Test
     void findByIdReturnsSavedUser() {
-        User user = new User();
-        user.setEmail("findbyid@example.com");
-        user.setPassword("hashed-password");
-        User saved = userRepository.save(user);
+        User saved = userRepository.save(createUser("findbyid@example.com"));
 
         User found = userRepository.findById(saved.getId()).orElse(null);
 
@@ -53,10 +68,7 @@ class UserRepositoryTest {
 
     @Test
     void findByEmailReturnsSavedUser() {
-        User user = new User();
-        user.setEmail("findbyemail@example.com");
-        user.setPassword("hashed-password");
-        userRepository.save(user);
+        userRepository.save(createUser("findbyemail@example.com"));
 
         User found = userRepository.findByEmail("findbyemail@example.com").orElse(null);
 

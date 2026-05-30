@@ -63,6 +63,8 @@ public class AuthService {
                     .orElseThrow(() -> new IllegalStateException("ADMIN role not found"));
             userRepository.addRoleToUser(savedUser.getId(), adminRole.getId());
 
+            tokenRevocationService.getJwtVersion(savedUser.getId());
+
             return savedUser;
         } catch (DataIntegrityViolationException e) {
             throw new CustomAuthException(409, "An account with this email already exists");
@@ -86,6 +88,8 @@ public class AuthService {
             Role adminRole = roleRepository.findByName("ADMIN")
                     .orElseThrow(() -> new IllegalStateException("ADMIN role not found"));
             userRepository.addRoleToUser(savedUser.getId(), adminRole.getId());
+
+            tokenRevocationService.getJwtVersion(savedUser.getId());
 
             return savedUser;
         } catch (DataIntegrityViolationException e) {

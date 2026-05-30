@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -21,6 +22,7 @@ func TestMain(m *testing.M) {
 
 	db, err := testutil.SetupTestDB(ctx, migrationPath)
 	if err != nil {
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 	testDB = db

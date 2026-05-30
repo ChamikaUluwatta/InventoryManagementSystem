@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -25,6 +26,7 @@ func TestMain(m *testing.M) {
 
 	db, err := testutil.SetupTestDB(ctx, migrationPath)
 	if err != nil {
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 	testDB = db
@@ -35,6 +37,7 @@ func TestMain(m *testing.M) {
 		testTenantID,
 	).Scan(&companyID); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -44,6 +47,7 @@ func TestMain(m *testing.M) {
 		testTenantID,
 	).Scan(&categoryID); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -53,6 +57,7 @@ func TestMain(m *testing.M) {
 		seedLocationID, testTenantID,
 	); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -62,6 +67,7 @@ func TestMain(m *testing.M) {
 		companyID, categoryID, seedLocationID, testTenantID,
 	).Scan(&seedProductID); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 

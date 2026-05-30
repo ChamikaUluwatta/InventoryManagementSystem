@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -29,6 +30,8 @@ func TestMain(m *testing.M) {
 
 	db, err := testutil.SetupTestDB(ctx, migrationPath)
 	if err != nil {
+		fmt.Print(err.Error())
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 	testDB = db
@@ -37,7 +40,9 @@ func TestMain(m *testing.M) {
 		`INSERT INTO "companies" (company_name, tenant_id) VALUES ('Test Company', $1) RETURNING company_id`,
 		testTenantID,
 	).Scan(&seedCompanyID); err != nil {
+		fmt.Print(err.Error())
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -45,7 +50,9 @@ func TestMain(m *testing.M) {
 		`INSERT INTO "categories" (category_name, tenant_id) VALUES ('Test Category', $1) RETURNING category_id`,
 		testTenantID,
 	).Scan(&seedCategoryID); err != nil {
+		fmt.Print(err.Error())
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -54,7 +61,9 @@ func TestMain(m *testing.M) {
 		`INSERT INTO "locations" (location_id, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 		seedLocationID, testTenantID,
 	); err != nil {
+		fmt.Print(err.Error())
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
