@@ -19,13 +19,13 @@ import (
 
 func SetupRoutes(r chi.Router, db *pgxpool.Pool) {
 
-	// Initialize auth middleware
 	jwksURL := os.Getenv("AUTH_JWKS_URL")
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
+	redisPassword := os.Getenv("REDIS_PASSWORD")
 
 	jwks := auth.NewJWKSCache(jwksURL)
-	redisClient := auth.NewRedisClient(redisHost, redisPort)
+	redisClient := auth.NewRedisClient(redisHost, redisPort, redisPassword)
 	authMiddleware := []func(http.Handler) http.Handler{
 		auth.JWTAuth(jwks),
 		auth.VersionCheck(redisClient),

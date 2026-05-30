@@ -1,6 +1,8 @@
 package com.inventory.auth.controller;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -34,9 +36,10 @@ public class AuthController {
 
     public AuthController(
             AuthService authService,
-            @Value("${app.auth.refresh-cookie-secure:false}") boolean refreshCookieSecure) {
+            @Value("${app.auth.refresh-cookie-secure:false}") boolean refreshCookieSecure,
+            Environment env) {
         this.authService = authService;
-        this.refreshCookieSecure = refreshCookieSecure;
+        this.refreshCookieSecure = refreshCookieSecure || env.acceptsProfiles(Profiles.of("prod"));
     }
 
     @PostMapping("/register")
