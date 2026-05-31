@@ -52,7 +52,7 @@ public class AuthController {
             String email = authService.generateGuestEmail();
             String password = authService.generateRandomPassword();
 
-            User user = authService.createGuestUser(email, password);
+            authService.createGuestUser(email, password);
 
             String refreshToken = authService.generateRefreshToken();
             TokenResponse tokenResponse = authService.authenticate(email, password, refreshToken);
