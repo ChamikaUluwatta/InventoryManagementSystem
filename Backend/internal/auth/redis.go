@@ -30,7 +30,7 @@ func NewRedisClient(host, port, password string) *RedisClient {
 func (r *RedisClient) GetJwtVersion(userID string) (int, error) {
 	key := jwtVersionPrefix + userID
 	val, err := r.client.Get(context.Background(), key).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return 0, nil
 	}
 	if err != nil {
