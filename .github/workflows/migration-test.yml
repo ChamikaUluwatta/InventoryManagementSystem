@@ -1,0 +1,92 @@
+name: Test Migrations
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create databases
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          PGPASSWORD=postgres psql -h localhost -U postgres -f db-init/01-create-databases.sql
+
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/
+
+      - name: Run inventory migrations up
+        run: |
+          migrate -path Backend/internal/database/migrations \
+            -database "postgresql://postgres:postgres@localhost:5432/inventory?sslmode=disable&options=-c%20app.current_tenant_id%3D00000000-0000-0000-0000-000000000001" \
+            up
+
+      - name: Run inventory migrations down
+        run: |
+          migrate -path Backend/internal/database/migrations \
+            -database "postgresql://postgres:postgres@localhost:5432/inventory?sslmode=disable&options=-c%20app.current_tenant_id%3D00000000-0000-0000-0000-000000000001" \
+            down -all
+
+  auth:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Create databases
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          PGPASSWORD=postgres psql -h localhost -U postgres -f db-init/01-create-databases.sql
+
+      - name: Run Flyway migrations
+        run: |
+          ./mvnw flyway:migrate \
+            -Dflyway.url=jdbc:postgresql://localhost:5432/auth_db \
+            -Dflyway.user=postgres \
+            -Dflyway.password=postgres \
+            -Dflyway.locations=classpath:db/migration
+        working-directory: AuthService
+
+      - name: Verify migration state
+        run: |
+          ./mvnw flyway:info \
+            -Dflyway.url=jdbc:postgresql://localhost:5432/auth_db \
+            -Dflyway.user=postgres \
+            -Dflyway.password=postgres
+        working-directory: AuthService
