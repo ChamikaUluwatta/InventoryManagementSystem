@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import type { Category } from '@/types/category'
-import { deleteCategory, getAllCategories } from '@/services/categoryService'
+import { getAllCategories } from '@/services/categoryService'
 import { getProductCountsByCategory } from '@/services/productService'
 import { useNavigate } from 'react-router-dom'
 import { Spinner } from '@/components/ui/spinner'

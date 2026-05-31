@@ -19,12 +19,10 @@ import {
 } from "@/components/ui/sidebar"
 import { LogInIcon, ChevronsUpDownIcon, BadgeCheckIcon, LogOutIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { useNavigate } from "react-router-dom"
 
 export function NavUser() {
   const { user, logout, openAuthDialog } = useAuth()
   const { isMobile } = useSidebar()
-  const navigate = useNavigate()
 
   if (!user) {
     return (
