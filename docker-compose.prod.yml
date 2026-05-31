@@ -2,17 +2,27 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: inventory-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       - POSTGRES_USER=${POSTGRES_USER?error}
-      - POSTGRES_DB=${POSTGRES_DB?error}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?error}
     volumes:
+      - ./db-init:/docker-entrypoint-initdb.d:ro
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: inventory-redis
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} --no-auth-warning ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     command: redis-server --requirepass ${REDIS_PASSWORD?error}
     volumes:
       - redis_data:/var/lib/redis/data
@@ -23,9 +33,17 @@ services:
       context: ./AuthService
       dockerfile: Dockerfile
     container_name: inventory-auth
+    healthcheck:
+      test: wget -q -O /dev/null http://localhost:8081/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/auth_db
       - DB_USERNAME=postgres
@@ -46,10 +64,18 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: inventory-backend
+    healthcheck:
+      test: wget -q -O /dev/null http://localhost:8080/api/v1/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
-      - postgres
-      - redis
-      - auth-service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
     environment:
       - DB_HOST=postgres://postgres:${POSTGRES_PASSWORD?error}@postgres:5432/inventory?sslmode=disable
       - SERVER_PORT=${SERVER_PORT?error}
@@ -66,6 +92,11 @@ services:
       args:
         NGINX_CONF: nginx/nginx.prod.conf
     container_name: inventory-nginx
+    healthcheck:
+      test: curl -s -o /dev/null http://localhost || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
     ports:
       - "80:80"
       - "443:443"
@@ -73,8 +104,10 @@ services:
       - ./secrets/origin-cert.pem:/etc/nginx/certs/origin.pem:ro
       - ./secrets/origin-key.pem:/etc/nginx/certs/private.key:ro
     depends_on:
-      - auth-service
-      - backend
+      auth-service:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
