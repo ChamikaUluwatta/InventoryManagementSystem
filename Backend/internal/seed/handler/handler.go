@@ -25,6 +25,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 func (h *Handler) Seed(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetClaimsFromContext(r.Context())
+	if claims == nil {
+		apperror.HandlerespondUnauthorized(w, "Unauthorized")
+		return
+	}
 	tenantID, err := uuid.Parse(claims.TenantID)
 	if err != nil {
 		apperror.HandleError(w, apperror.BadRequest("Invalid tenant id", err))
