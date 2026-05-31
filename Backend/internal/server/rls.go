@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"log"
 	"net/http"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
@@ -8,6 +10,37 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type responseBuffer struct {
+	http.ResponseWriter
+	statusCode  int
+	body        bytes.Buffer
+	wroteHeader bool
+}
+
+func (rb *responseBuffer) WriteHeader(statusCode int) {
+	if rb.wroteHeader {
+		return
+	}
+	rb.statusCode = statusCode
+	rb.wroteHeader = true
+}
+
+func (rb *responseBuffer) Write(b []byte) (int, error) {
+	if !rb.wroteHeader {
+		rb.WriteHeader(http.StatusOK)
+	}
+	return rb.body.Write(b)
+}
+
+func (rb *responseBuffer) flush() {
+	if rb.wroteHeader {
+		rb.ResponseWriter.WriteHeader(rb.statusCode)
+	}
+	if rb.body.Len() > 0 {
+		rb.ResponseWriter.Write(rb.body.Bytes())
+	}
+}
 
 func TenantRLS(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -35,11 +68,15 @@ func TenantRLS(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 			}
 
 			ctx := database.SetTx(r.Context(), tx)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			buf := &responseBuffer{ResponseWriter: w}
+			next.ServeHTTP(buf, r.WithContext(ctx))
 
 			if err := tx.Commit(r.Context()); err != nil {
-				// response already written
+				log.Printf("tx commit failed: %v", err)
+				apperror.HandleError(w, apperror.Internal("Transaction commit failed", err))
+				return
 			}
+			buf.flush()
 		})
 	}
 }
