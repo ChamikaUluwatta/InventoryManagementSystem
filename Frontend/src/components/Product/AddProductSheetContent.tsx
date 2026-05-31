@@ -327,7 +327,7 @@ export default function AddProductSheetContent({ onClose, onSuccess }: Props) {
                         value={loc.location_id.toString()}
                         className="font-mono text-sm"
                       >
-                        {loc.location_id == "unassigned" ? 'UNASSIGNED' : loc.location_id}
+                        {loc.location_id}
                       </SelectItem>
                     ))}
                   </SelectContent>
