@@ -1,4 +1,4 @@
-package seed
+package service
 
 type companySeed struct {
 	Name        string

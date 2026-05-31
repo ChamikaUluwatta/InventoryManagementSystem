@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@/components/Layout/AppLayout'
+import { AuthDialog } from '@/components/Auth/AuthDialog'
 import ManageProducts from '@/pages/Products/ManageProducts'
-
 import Category from '@/pages/Category/Category'
 import Inventory from '@/pages/Inventory/Inventory'
 import Location from '@/pages/Location/Location'
@@ -9,21 +9,15 @@ import SupplierReturns from '@/pages/SupplierReturns/SupplierReturns'
 import Company from '@/pages/Company/Company'
 import { Button } from './components/ui/button'
 import Dashboard from './pages/Dashboard/Dashboard'
+import { useAuth } from '@/contexts/AuthContext'
 
+function AppInner() {
+  const { isAuthDialogOpen, closeAuthDialog } = useAuth()
 
-
-function App() {
   return (
-    <BrowserRouter>
+    <>
+      <AuthDialog open={isAuthDialogOpen} onClose={closeAuthDialog} />
       <Routes>
-        <Route
-          path="/products"
-          element={
-            <AppLayout>
-              <ManageProducts />
-            </AppLayout>
-          }
-        />
         <Route
           path="/"
           element={
@@ -33,19 +27,13 @@ function App() {
           }
         />
         <Route
-          path="*"
+          path="/products"
           element={
             <AppLayout>
-              <div className="p-4 h-full flex items-center justify-center flex-col gap-2">
-                <h1 className="text-2xl font-bold">Page Not Found</h1>
-                <Button variant="outline" className="ml-4" onClick={() => window.history.back()}>
-                  Go Back
-                </Button>
-              </div>
+              <ManageProducts />
             </AppLayout>
           }
         />
-        
         <Route
           path="/stock"
           element={
@@ -86,7 +74,28 @@ function App() {
             </AppLayout>
           }
         />
+        <Route
+          path="*"
+          element={
+            <AppLayout>
+              <div className="p-4 h-full flex items-center justify-center flex-col gap-2">
+                <h1 className="text-2xl font-bold">Page Not Found</h1>
+                <Button variant="outline" className="ml-4" onClick={() => window.history.back()}>
+                  Go Back
+                </Button>
+              </div>
+            </AppLayout>
+          }
+        />
       </Routes>
+    </>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppInner />
     </BrowserRouter>
   )
 }

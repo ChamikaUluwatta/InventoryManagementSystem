@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -17,6 +18,7 @@ var (
 	seedCompanyID  uuid.UUID
 	seedProductID  uuid.UUID
 	seedLocationID string
+	testTenantID   = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 )
 
 const migrationPath = "../../database/migrations"
@@ -26,40 +28,47 @@ func TestMain(m *testing.M) {
 
 	db, err := testutil.SetupTestDB(ctx, migrationPath)
 	if err != nil {
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 	testDB = db
 
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "companies" (company_name) VALUES ('Supplier Co') RETURNING company_id`,
+		`INSERT INTO "companies" (company_name, tenant_id) VALUES ('Supplier Co', $1) RETURNING company_id`,
+		testTenantID,
 	).Scan(&seedCompanyID); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
 	seedLocationID = "SR-LOC-1"
 	if _, err := testDB.Pool.Exec(ctx,
-		`INSERT INTO "locations" (location_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-		seedLocationID,
+		`INSERT INTO "locations" (location_id, tenant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		seedLocationID, testTenantID,
 	); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
 	var categoryID int
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "categories" (category_name) VALUES ('SR Category') RETURNING category_id`,
+		`INSERT INTO "categories" (category_name, tenant_id) VALUES ('SR Category', $1) RETURNING category_id`,
+		testTenantID,
 	).Scan(&categoryID); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
 	if err := testDB.Pool.QueryRow(ctx,
-		`INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id)
-		 VALUES ('Supplier Product', 'desc', 1.0, 1.0, $1, 10.0, $2, $3) RETURNING product_id`,
-		seedCompanyID, categoryID, seedLocationID,
+		`INSERT INTO "products" (product_name, product_description, diameter, width, company_id, price, category_id, location_id, tenant_id)
+		 VALUES ('Supplier Product', 'desc', 1.0, 1.0, $1, 10.0, $2, $3, $4) RETURNING product_id`,
+		seedCompanyID, categoryID, seedLocationID, testTenantID,
 	).Scan(&seedProductID); err != nil {
 		testDB.Close()
+		fmt.Printf("SetupTestDB failed: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -76,6 +85,7 @@ func TestCreate(t *testing.T) {
 		req := &model.SupplierReturn{
 			ReturnNo:  "SR-CREATE-001",
 			CompanyID: seedCompanyID,
+			TenantID:  testTenantID,
 			Reason:    strPtr("Defective products"),
 			Notes:     strPtr("Handle ASAP"),
 			Items: []model.SupplierReturnItem{
@@ -84,6 +94,7 @@ func TestCreate(t *testing.T) {
 					LocationID: &seedLocationID,
 					Quantity:   5,
 					UnitCost:   decimal.NewFromFloat(9.99),
+					TenantID:   testTenantID,
 				},
 			},
 		}
@@ -114,12 +125,14 @@ func TestCreate(t *testing.T) {
 		req := &model.SupplierReturn{
 			ReturnNo:  "SR-SNAPSHOT-001",
 			CompanyID: seedCompanyID,
+			TenantID:  testTenantID,
 			Items: []model.SupplierReturnItem{
 				{
 					ProductID:  &seedProductID,
 					LocationID: &seedLocationID,
 					Quantity:   3,
 					UnitCost:   decimal.NewFromFloat(4.50),
+					TenantID:   testTenantID,
 				},
 			},
 		}
@@ -147,12 +160,14 @@ func TestGetByID(t *testing.T) {
 	req := &model.SupplierReturn{
 		ReturnNo:  "SR-GETBYID-001",
 		CompanyID: seedCompanyID,
+		TenantID:  testTenantID,
 		Items: []model.SupplierReturnItem{
 			{
 				ProductID:  &seedProductID,
 				LocationID: &seedLocationID,
 				Quantity:   7,
 				UnitCost:   decimal.NewFromFloat(3.50),
+				TenantID:   testTenantID,
 			},
 		},
 	}
@@ -218,12 +233,14 @@ func TestUpdateStatus(t *testing.T) {
 	req := &model.SupplierReturn{
 		ReturnNo:  "SR-STATUS-001",
 		CompanyID: seedCompanyID,
+		TenantID:  testTenantID,
 		Items: []model.SupplierReturnItem{
 			{
 				ProductID:  &seedProductID,
 				LocationID: &seedLocationID,
 				Quantity:   1,
 				UnitCost:   decimal.NewFromFloat(1.0),
+				TenantID:   testTenantID,
 			},
 		},
 	}
@@ -265,12 +282,14 @@ func TestDelete(t *testing.T) {
 	req := &model.SupplierReturn{
 		ReturnNo:  "SR-DELETE-001",
 		CompanyID: seedCompanyID,
+		TenantID:  testTenantID,
 		Items: []model.SupplierReturnItem{
 			{
 				ProductID:  &seedProductID,
 				LocationID: &seedLocationID,
 				Quantity:   1,
 				UnitCost:   decimal.NewFromFloat(1.0),
+				TenantID:   testTenantID,
 			},
 		},
 	}

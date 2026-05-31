@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/category/model"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -20,11 +21,18 @@ type Repository interface {
 }
 
 type repository struct {
-	db *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) Repository {
-	return &repository{db: db}
+func NewRepository(pool *pgxpool.Pool) Repository {
+	return &repository{pool: pool}
+}
+
+func (r *repository) db(ctx context.Context) database.Querier {
+	if tx, ok := database.GetTx(ctx); ok {
+		return tx
+	}
+	return r.pool
 }
 
 func (r *repository) Create(ctx context.Context, category *model.Category) error {
@@ -37,7 +45,7 @@ func (r *repository) Create(ctx context.Context, category *model.Category) error
 		"category_name": category.CategoryName,
 		"parent_id":     category.ParentID,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(&category.CategoryID)
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&category.CategoryID)
 
 	if err != nil {
 		return apperror.Internal("failed to create category", err)
@@ -47,7 +55,7 @@ func (r *repository) Create(ctx context.Context, category *model.Category) error
 
 func (r *repository) GetByID(ctx context.Context, id int) (*model.Category, error) {
 	query := `
-		SELECT category_id, category_name, parent_id
+		SELECT category_id, category_name, parent_id, tenant_id
 		FROM "categories"
 		WHERE category_id = @category_id`
 
@@ -55,10 +63,11 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.Category, erro
 	args := pgx.NamedArgs{
 		"category_id": id,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(
 		&category.CategoryID,
 		&category.CategoryName,
 		&category.ParentID,
+		&category.TenantID,
 	)
 
 	if err != nil {
@@ -72,7 +81,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*model.Category, erro
 
 func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Category, error) {
 	query := `
-		SELECT category_id, category_name, parent_id
+		SELECT category_id, category_name, parent_id, tenant_id
 		FROM "categories"
 		ORDER BY category_name
 		LIMIT @limit OFFSET @offset`
@@ -81,7 +90,7 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 		"limit":  params.Limit,
 		"offset": params.Offset,
 	}
-	rows, err := r.db.Query(ctx, query, args)
+	rows, err := r.db(ctx).Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("failed to get all categories", err)
 	}
@@ -100,7 +109,7 @@ func (r *repository) Update(ctx context.Context, category *model.Category) error
 		"parent_id":     category.ParentID,
 		"category_id":   category.CategoryID,
 	}
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return apperror.Internal("failed to update category", err)
 	}
@@ -116,7 +125,7 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 		"category_id": id,
 	}
 
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return apperror.Internal("failed to delete category", err)
 	}
@@ -128,7 +137,7 @@ func (r *repository) Delete(ctx context.Context, id int) error {
 
 func (r *repository) GetByParent(ctx context.Context, parentID *int) ([]model.Category, error) {
 	query := `
-		SELECT category_id, category_name, parent_id
+		SELECT category_id, category_name, parent_id, tenant_id
 		FROM "categories"
 		WHERE parent_id = @parent_id
 		ORDER BY category_name`
@@ -136,7 +145,7 @@ func (r *repository) GetByParent(ctx context.Context, parentID *int) ([]model.Ca
 	args := pgx.NamedArgs{
 		"parent_id": parentID,
 	}
-	rows, err := r.db.Query(ctx, query, args)
+	rows, err := r.db(ctx).Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("failed to get categories by parent", err)
 	}

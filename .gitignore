@@ -26,6 +26,9 @@ Backend/tmp/
 .DS_Store
 Thumbs.db
 
+# Secrets
+secrets/*
+
 # Logs
 *.log
 npm-debug.log*

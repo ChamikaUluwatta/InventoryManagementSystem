@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"github.com/go-chi/chi/v5"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/handler"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/service"
@@ -46,9 +48,21 @@ func (m *mockService) GetCompanyDependencies(ctx context.Context, id uuid.UUID) 
 	return m.getCompanyDependenciesFunc(ctx, id)
 }
 
-func setupHandler(svc service.Service) *http.ServeMux {
+func setupHandler(svc service.Service) *chi.Mux {
 	h := handler.NewHandler(svc)
-	mux := http.NewServeMux()
+	mux := chi.NewRouter()
+	mux.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := &auth.Claims{
+				UserID: "test-user",
+				Email:              "test.com",
+				Permissions:        []string{"companies:read", "companies:write"},
+				JwtVersion: 1,
+			}
+			ctx := auth.ContextWithClaims(r.Context(), claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
 	h.RegisterRoutes(mux)
 	return mux
 }

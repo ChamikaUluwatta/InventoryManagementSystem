@@ -2,7 +2,7 @@ import type { Category } from '@/types/category'
 import { apiFetch } from '@/lib/api'
 
 export const getAllCategories = async (): Promise<Category[]> => {
-  return apiFetch<Category[]>('/categories')
+  return apiFetch<Category[]>('/categories?limit=100')
 }
 
 export const getCategoryById = async (id: string): Promise<Category> => {

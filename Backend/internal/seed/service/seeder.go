@@ -1,4 +1,4 @@
-package seed
+package service
 
 import (
 	"context"
@@ -13,30 +13,30 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type companyCreator interface {
+type CompanyCreator interface {
 	Create(ctx context.Context, company *companyModel.Company) error
 }
 
-type categoryCreator interface {
+type CategoryCreator interface {
 	Create(ctx context.Context, category *model.Category) error
 }
 
-type locationCreator interface {
+type LocationCreator interface {
 	Create(ctx context.Context, location *locationModel.Location) error
 }
 
-type productCreator interface {
+type ProductCreator interface {
 	Create(ctx context.Context, product *productModel.Product) error
 }
 
-type inventoryCreator interface {
+type InventoryCreator interface {
 	Create(ctx context.Context, inventory *inventoryModel.Inventory) error
 }
 
-func seedCompaniesFn(ctx context.Context, creator companyCreator, seeds []companySeed) ([]companyModel.Company, error) {
+func seedCompaniesFn(ctx context.Context, creator CompanyCreator, seeds []companySeed, tenantID uuid.UUID) ([]companyModel.Company, error) {
 	var created []companyModel.Company
 	for _, s := range seeds {
-		company := companyModel.Company{CompanyName: s.Name, Description: s.Description}
+		company := companyModel.Company{CompanyName: s.Name, Description: s.Description, TenantID: tenantID}
 		if err := creator.Create(ctx, &company); err != nil {
 			log.Printf("Failed to create company %q: %v", s.Name, err)
 			continue
@@ -46,10 +46,10 @@ func seedCompaniesFn(ctx context.Context, creator companyCreator, seeds []compan
 	return created, nil
 }
 
-func seedCategoriesFn(ctx context.Context, creator categoryCreator, seeds []categorySeed) ([]model.Category, error) {
+func seedCategoriesFn(ctx context.Context, creator CategoryCreator, seeds []categorySeed, tenantID uuid.UUID) ([]model.Category, error) {
 	var created []model.Category
 	for _, s := range seeds {
-		category := model.Category{CategoryName: s.Name}
+		category := model.Category{CategoryName: s.Name, TenantID: tenantID}
 		if err := creator.Create(ctx, &category); err != nil {
 			log.Printf("Failed to create category %q: %v", s.Name, err)
 			continue
@@ -59,10 +59,10 @@ func seedCategoriesFn(ctx context.Context, creator categoryCreator, seeds []cate
 	return created, nil
 }
 
-func seedLocationsFn(ctx context.Context, creator locationCreator, seeds []locationSeed) ([]locationModel.Location, error) {
+func seedLocationsFn(ctx context.Context, creator LocationCreator, seeds []locationSeed, tenantID uuid.UUID) ([]locationModel.Location, error) {
 	var created []locationModel.Location
 	for _, s := range seeds {
-		location := locationModel.Location{LocationID: s.LocationID}
+		location := locationModel.Location{LocationID: s.LocationID, TenantID: tenantID}
 		if err := creator.Create(ctx, &location); err != nil {
 			log.Printf("Failed to create location %q: %v", s.LocationID, err)
 			continue
@@ -72,8 +72,8 @@ func seedLocationsFn(ctx context.Context, creator locationCreator, seeds []locat
 	return created, nil
 }
 
-func seedProductsFn(ctx context.Context, creator productCreator, seeds []productSeed, companyIDs []uuid.UUID, categoryIDs []int) ([]productModel.Product, error) {
-	if len(companyIDs) < 1 || len(categoryIDs) < 1 {
+func seedProductsFn(ctx context.Context, creator ProductCreator, seeds []productSeed, companyIDs []uuid.UUID, categoryIDs []int, locationIDs []string, tenantID uuid.UUID) ([]productModel.Product, error) {
+	if len(companyIDs) < 1 || len(categoryIDs) < 1 || len(locationIDs) < 1 {
 		return nil, nil
 	}
 
@@ -87,6 +87,8 @@ func seedProductsFn(ctx context.Context, creator productCreator, seeds []product
 			CompanyID:          companyIDs[i%len(companyIDs)],
 			Price:              decimal.NewFromFloat(s.Price),
 			CategoryID:         categoryIDs[i%len(categoryIDs)],
+			LocationID:         locationIDs[i%len(locationIDs)],
+			TenantID:           tenantID,
 		}
 		if err := creator.Create(ctx, &product); err != nil {
 			log.Printf("Failed to create product %q: %v", s.Name, err)
@@ -97,7 +99,7 @@ func seedProductsFn(ctx context.Context, creator productCreator, seeds []product
 	return created, nil
 }
 
-func seedInventoriesFn(ctx context.Context, creator inventoryCreator, seeds []inventorySeed, productIDs []uuid.UUID, locationIDs []string) ([]inventoryModel.Inventory, error) {
+func seedInventoriesFn(ctx context.Context, creator InventoryCreator, seeds []inventorySeed, productIDs []uuid.UUID, locationIDs []string, tenantID uuid.UUID) ([]inventoryModel.Inventory, error) {
 	if len(productIDs) < 1 || len(locationIDs) < 1 {
 		return nil, nil
 	}
@@ -108,6 +110,7 @@ func seedInventoriesFn(ctx context.Context, creator inventoryCreator, seeds []in
 			ProductID:  productIDs[s.ProductIndex%len(productIDs)],
 			LocationID: locationIDs[s.LocationIndex%len(locationIDs)],
 			Stock:      s.Stock,
+			TenantID:   tenantID,
 		}
 		if err := creator.Create(ctx, &inv); err != nil {
 			log.Printf("Failed to create inventory: %v", err)

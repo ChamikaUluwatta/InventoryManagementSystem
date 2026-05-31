@@ -15,6 +15,7 @@ type Service interface {
 	GetAllProducts(ctx context.Context, params model.GetProductsQueryParams) ([]model.Product, error)
 	UpdateProduct(ctx context.Context, product *model.Product) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
+	GetAllProductCountBy(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error)
 }
 
 type service struct {
@@ -55,4 +56,11 @@ func (s *service) UpdateProduct(ctx context.Context, product *model.Product) err
 
 func (s *service) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *service) GetAllProductCountBy(ctx context.Context, groupBy string) ([]model.ProductCountGroupBy, error) {
+	if err := validation.ValidateGroupBy(groupBy); err != nil {
+		return nil, err
+	}
+	return s.repo.GetAllProductCountBy(ctx, groupBy)
 }

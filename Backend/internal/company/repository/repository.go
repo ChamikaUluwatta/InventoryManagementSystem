@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/company/model"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -22,11 +23,18 @@ type Repository interface {
 }
 
 type repository struct {
-	db *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) Repository {
-	return &repository{db: db}
+func NewRepository(pool *pgxpool.Pool) Repository {
+	return &repository{pool: pool}
+}
+
+func (r *repository) db(ctx context.Context) database.Querier {
+	if tx, ok := database.GetTx(ctx); ok {
+		return tx
+	}
+	return r.pool
 }
 
 func (r *repository) Create(ctx context.Context, company *model.Company) error {
@@ -39,7 +47,7 @@ func (r *repository) Create(ctx context.Context, company *model.Company) error {
 		"company_name": company.CompanyName,
 		"description":  company.Description,
 	}
-	err := r.db.QueryRow(ctx, query, args).Scan(&company.CompanyID)
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&company.CompanyID)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -53,7 +61,7 @@ func (r *repository) Create(ctx context.Context, company *model.Company) error {
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company, error) {
 	query := `
-		SELECT company_id, company_name, description
+		SELECT company_id, company_name, description, tenant_id
 		FROM "companies"
 		WHERE company_id = @company_id`
 
@@ -61,10 +69,11 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company,
 		"company_id": id,
 	}
 	var company model.Company
-	err := r.db.QueryRow(ctx, query, args).Scan(
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(
 		&company.CompanyID,
 		&company.CompanyName,
 		&company.Description,
+		&company.TenantID,
 	)
 
 	if err != nil {
@@ -78,7 +87,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*model.Company,
 
 func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]model.Company, error) {
 	query := `
-		SELECT company_id, company_name, description
+		SELECT company_id, company_name, description, tenant_id
 		FROM "companies"
 		ORDER BY company_name
 		LIMIT @limit OFFSET @offset`
@@ -87,7 +96,7 @@ func (r *repository) GetAll(ctx context.Context, params model.QueryParams) ([]mo
 		"limit":  params.Limit,
 		"offset": params.Offset,
 	}
-	rows, err := r.db.Query(ctx, query, args)
+	rows, err := r.db(ctx).Query(ctx, query, args)
 	if err != nil {
 		return nil, apperror.Internal("failed to get all companies", err)
 	}
@@ -107,7 +116,7 @@ func (r *repository) Update(ctx context.Context, company *model.Company) error {
 		"description":  company.Description,
 		"company_id":   company.CompanyID,
 	}
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return apperror.Internal("failed to update company", err)
 	}
@@ -123,7 +132,7 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 		"company_id": id,
 	}
 
-	result, err := r.db.Exec(ctx, query, args)
+	result, err := r.db(ctx).Exec(ctx, query, args)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return apperror.NotFound("company not found", err)
@@ -150,7 +159,7 @@ func (r *repository) GetCompanyDependencies(ctx context.Context, id uuid.UUID) (
 		"company_id": id,
 	}
 	var dep model.CompanyDependency
-	err := r.db.QueryRow(ctx, query, args).Scan(&dep.ProductCount, &dep.SupplierCount)
+	err := r.db(ctx).QueryRow(ctx, query, args).Scan(&dep.ProductCount, &dep.SupplierCount)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return model.CompanyDependency{}, apperror.NotFound("company not found", err)

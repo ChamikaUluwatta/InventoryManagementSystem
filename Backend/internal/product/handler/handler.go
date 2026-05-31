@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product/service"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -19,12 +21,22 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /products", h.Create)
-	mux.HandleFunc("GET /products", h.GetAll)
-	mux.HandleFunc("GET /products/{id}", h.GetByID)
-	mux.HandleFunc("PUT /products/{id}", h.Update)
-	mux.HandleFunc("DELETE /products/{id}", h.Delete)
+func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Route("/products", func(r chi.Router) {
+
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionWrite))
+			r.Post("/", h.Create)
+			r.Put("/{id}", h.Update)
+			r.Delete("/{id}", h.Delete)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionRead))
+			r.Get("/", h.GetAll)
+			r.Get("/{id}", h.GetByID)
+			r.Get("/counts", h.GetCounts)
+		})
+	})
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +129,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseProductID(r *http.Request) (uuid.UUID, error) {
-	idStr := r.PathValue("id")
+	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return uuid.Nil, apperror.BadRequest("invalid product id", err)
@@ -169,4 +181,21 @@ func parseGetProductsQueryParams(r *http.Request) (model.GetProductsQueryParams,
 	}
 
 	return params, nil
+}
+
+func (h *Handler) GetCounts(w http.ResponseWriter, r *http.Request) {
+	groupBy := r.URL.Query().Get("group_by")
+	if groupBy == "" {
+		apperror.HandleError(w, apperror.BadRequest("group_by query parameter is required", nil))
+		return
+	}
+
+	result, err := h.service.GetAllProductCountBy(r.Context(), groupBy)
+	if err != nil {
+		apperror.HandleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }

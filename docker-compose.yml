@@ -1,47 +1,99 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: inventory-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       - POSTGRES_USER=${POSTGRES_USER?error}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?error}
-      - POSTGRES_DB=${POSTGRES_DB?error}
     ports:
       - "5432:5432"
     volumes:
+      - ./db-init:/docker-entrypoint-initdb.d:ro
       - postgres_data:/var/lib/postgresql/data
     profiles:
       - dockerDB
-    
-
+  redis:
+    image: redis:7-alpine
+    container_name: inventory-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6379:6379"
+    profiles:
+      - dockerDB
+  auth-service:
+    build:
+      context: ./AuthService
+      dockerfile: Dockerfile
+    container_name: inventory-auth
+    healthcheck:
+      test: wget -q -O /dev/null http://localhost:8081/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/auth_db
+      - DB_USERNAME=${POSTGRES_USER?error}
+      - DB_PASSWORD=${POSTGRES_PASSWORD?error}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    profiles:
+      - dockerDB
   backend:
     build:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: inventory-backend
+    healthcheck:
+      test: wget -q -O /dev/null http://localhost:8080/api/v1/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
       - DB_HOST=${DB_HOST_DOCKER?error}
       - SERVER_PORT=${SERVER_PORT?error}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS?error}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_JWKS_URL=http://auth-service:8081/api/v1/auth/.well-known/jwks.json
     depends_on:
       postgres:
         condition: service_started
-        required: false
+      redis:
+        condition: service_started
+      auth-service:
+        condition: service_started
     ports:
       - "8080:8080"
     profiles:
       - dockerDB
       - localDB
-
   frontend:
     build:
       context: ./Frontend
-      args:
-        - VITE_API_URL=${VITE_API_URL?error}
       dockerfile: Dockerfile
     container_name: inventory-frontend
+    healthcheck:
+      test: curl -s -o /dev/null http://localhost:5173 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
     ports:
       - "5173:5173"
     depends_on:
@@ -49,6 +101,5 @@ services:
     profiles:
       - dockerDB
       - localDB
-
 volumes:
   postgres_data:

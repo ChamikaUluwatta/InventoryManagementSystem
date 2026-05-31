@@ -1,0 +1,8 @@
+.env
+secrets/
+.git/
+AuthService/target/
+Backend/server
+Backend/bin/
+Backend/tmp/
+Frontend/node_modules/

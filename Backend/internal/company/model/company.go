@@ -6,6 +6,7 @@ type Company struct {
 	CompanyID   uuid.UUID `db:"company_id"   json:"company_id"`
 	CompanyName string    `db:"company_name" json:"company_name"`
 	Description string    `db:"description"  json:"description"`
+	TenantID    uuid.UUID `db:"tenant_id"    json:"-"`
 }
 
 type QueryParams struct {

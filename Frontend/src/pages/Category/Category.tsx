@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import type { Category } from '@/types/category'
 import { getAllCategories } from '@/services/categoryService'
+import { getProductCountsByCategory } from '@/services/productService'
+import { useNavigate } from 'react-router-dom'
 import { Spinner } from '@/components/ui/spinner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -8,7 +10,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import AddCategorySheetContent from '@/components/Category/AddCategorySheetContent'
 import CategorySheetContent from '@/components/Category/CategorySheetContent'
 import { IconPlus, IconMinus } from '@tabler/icons-react'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, ExternalLink } from 'lucide-react'
 import { ErrorMessage } from '@/components/ui/error-message'
 
 interface CategoryTreeNode extends Category {
@@ -79,12 +81,18 @@ export default function Category() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [addSheetOpen, setAddSheetOpen] = useState(false)
   const [editCategory, setEditCategory] = useState<Category | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await getAllCategories()
-        setCategories(data)
+        const [catData, countData] = await Promise.all([
+          getAllCategories(),
+          getProductCountsByCategory(),
+        ])
+        const countMap = new Map(countData.map((c) => [c.category_id, c.product_count]))
+        const merged = catData.map((c) => ({ ...c, product_count: countMap.get(c.category_id) ?? 0 }))
+        setCategories(merged)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch categories')
       } finally {
@@ -116,7 +124,12 @@ export default function Category() {
   }, [tree])
 
   const handleAddSuccess = useCallback(() => {
-    getAllCategories().then(setCategories).catch(console.error)
+    Promise.all([getAllCategories(), getProductCountsByCategory()])
+      .then(([catData, countData]) => {
+        const countMap = new Map(countData.map((c) => [c.category_id, c.product_count]))
+        setCategories(catData.map((c) => ({ ...c, product_count: countMap.get(c.category_id) ?? 0 })))
+      })
+      .catch(console.error)
   }, [])
 
   const toggleExpand = useCallback((id: number) => {
@@ -168,13 +181,15 @@ export default function Category() {
         <table className="table-industrial">
           <thead>
             <tr>
-              <th>CATEGORY NAME</th>
+              <th className="text-left">CATEGORY NAME</th>
+              <th className="text-center">PRODUCTS</th>
+              <th className="text-center">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {flatRows.length === 0 ? (
               <tr>
-                <td className="h-24 text-center text-muted-foreground">
+                <td colSpan={3} className="h-24 text-center text-muted-foreground">
                   No categories found.
                 </td>
               </tr>
@@ -199,6 +214,23 @@ export default function Category() {
                       )}
                       <span className="font-medium">{row.node.category_name}</span>
                     </div>
+                  </td>
+                  <td className="text-center font-mono text-sm text-muted-foreground">
+                    {row.node.product_count}
+                  </td>
+                  <td className="text-center flex items-center justify-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/products?category=${row.node.category_id}`)
+                      }}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      VIEW
+                    </Button>
                   </td>
                 </tr>
               ))

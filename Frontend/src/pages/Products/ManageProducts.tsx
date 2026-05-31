@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   flexRender,
   getCoreRowModel,
@@ -26,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Product } from '@/types/product'
-import { getAllProducts } from '@/services/productService'
+import { getAllProducts, getProductsByCategory } from '@/services/productService'
 import type { Category } from '@/types/category'
 import { getAllCategories } from '@/services/categoryService'
 import { Spinner } from '@/components/ui/spinner'
@@ -37,26 +38,39 @@ import ProductSheetContent from '@/components/Product/ProductSheetContent'
 import AddProductSheetContent from '@/components/Product/AddProductSheetContent'
 
 export default function ManageProducts() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const categoryParam = searchParams.get('category')
+
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState(categoryParam || 'all')
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [addSheetOpen, setAddSheetOpen] = useState(false)
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    setCategoryFilter(categoryParam || 'all')
+  }, [categoryParam])
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const [productData, categoriesData] = await Promise.all([
-          getAllProducts(),
-          getAllCategories(),
-        ])
-        setProducts(productData)
+        setLoading(true)
+        const categoriesData = await getAllCategories()
         setCategories(categoriesData)
+
+        if (categoryParam) {
+          const productData = await getProductsByCategory(Number(categoryParam))
+          setProducts(productData)
+        } else {
+          const productData = await getAllProducts()
+          setProducts(productData)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch products')
       } finally {
@@ -64,8 +78,8 @@ export default function ManageProducts() {
       }
     }
 
-    fetchProducts()
-  }, [])
+    fetchData()
+  }, [categoryParam])
 
   const handleRowClick = (product: Product) => {
     setSelectedProduct(product)
@@ -73,11 +87,19 @@ export default function ManageProducts() {
   }
 
   const handleAddSuccess = () => {
-    getAllProducts().then(setProducts).catch(console.error)
+    if (categoryParam) {
+      getProductsByCategory(Number(categoryParam)).then(setProducts).catch(console.error)
+    } else {
+      getAllProducts().then(setProducts).catch(console.error)
+    }
   }
 
   const handleSuccess = () => {
-    getAllProducts().then(setProducts).catch(console.error)
+    if (categoryParam) {
+      getProductsByCategory(Number(categoryParam)).then(setProducts).catch(console.error)
+    } else {
+      getAllProducts().then(setProducts).catch(console.error)
+    }
   }
 
   const handleClose = () => {
@@ -164,6 +186,29 @@ export default function ManageProducts() {
               className="pl-9 w-48 font-mono text-xs uppercase"
             />
           </div>
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => {
+              setCategoryFilter(value)
+              if (value === 'all') {
+                setSearchParams({})
+              } else {
+                setSearchParams({ category: value })
+              }
+            }}
+          >
+            <SelectTrigger className="w-44 h-9 font-mono text-xs uppercase">
+              <SelectValue placeholder="ALL CATEGORIES" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ALL CATEGORIES</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.category_id} value={String(cat.category_id)}>
+                  {cat.category_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" className="gap-2 font-mono text-xs" onClick={() => setAddSheetOpen(true)}>
             <Plus className="h-4 w-4" />
             ADD PRODUCT

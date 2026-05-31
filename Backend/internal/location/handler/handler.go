@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/apperror"
+	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/auth"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location/model"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location/service"
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
@@ -18,12 +20,21 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /locations", h.Create)
-	mux.HandleFunc("GET /locations", h.GetAll)
-	mux.HandleFunc("GET /locations/{id}", h.GetByID)
-	mux.HandleFunc("PUT /locations/{id}", h.Update)
-	mux.HandleFunc("DELETE /locations/{id}", h.Delete)
+func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Route("/locations", func(r chi.Router) {
+
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionWrite))
+			r.Post("/", h.Create)
+			r.Put("/{id}", h.Update)
+			r.Delete("/{id}", h.Delete)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequirePermission(PermissionRead))
+			r.Get("/", h.GetAll)
+			r.Get("/{id}", h.GetByID)
+		})
+	})
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +55,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
 		return
@@ -73,7 +84,7 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
 		return
@@ -96,7 +107,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		apperror.HandleError(w, apperror.BadRequest("invalid location id", nil))
 		return

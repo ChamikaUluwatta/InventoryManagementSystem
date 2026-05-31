@@ -15,6 +15,7 @@ type Product struct {
 	Price              decimal.Decimal `db:"price"        json:"price"`
 	CategoryID         int             `db:"category_id"  json:"category_id"`
 	LocationID         string          `db:"location_id"  json:"location_id"`
+	TenantID           uuid.UUID       `db:"tenant_id"    json:"-"`
 }
 type GetProductById struct {
 	Product
@@ -26,4 +27,10 @@ type GetProductsQueryParams struct {
 	CompanyID  *uuid.UUID
 	Limit      int
 	Offset     int
+}
+
+type ProductCountGroupBy struct {
+	LocationID   string `json:"location_id,omitempty"`
+	CategoryID   int    `json:"category_id,omitempty"`
+	ProductCount int    `json:"product_count"`
 }

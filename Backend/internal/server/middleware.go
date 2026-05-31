@@ -10,20 +10,6 @@ import (
 	"strings"
 )
 
-type Chain []func(http.Handler) http.Handler
-
-func (c Chain) Then(h http.Handler) http.Handler {
-	for _, fn := range slices.Backward(c) {
-		h = fn(h)
-	}
-
-	return h
-}
-
-func (c Chain) ThenFunc(h http.HandlerFunc) http.Handler {
-	return c.Then(h)
-}
-
 func Logger(next http.Handler) http.Handler {
 	logger := log.New(log.Writer(), "", log.LstdFlags)
 
