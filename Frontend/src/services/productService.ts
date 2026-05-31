@@ -6,7 +6,7 @@ export const getProductCountsByCategory = async (): Promise<CategoryProductCount
 }
 
 export const getAllProducts = async (): Promise<Product[]> => {
-  return apiFetch<Product[]>('/products?limit=100')
+  return apiFetch<Product[]>('/products')
 }
 
 export const getProductById = async (id: string): Promise<Product> => {
@@ -36,9 +36,9 @@ export const deleteProduct = async (id: string): Promise<void> => {
 }
 
 export const getProductsByCompany = async (companyId: string): Promise<Product[]> => {
-  return apiFetch<Product[]>(`/products?company=${encodeURIComponent(companyId)}&limit=100`)
+  return apiFetch<Product[]>(`/products?company=${encodeURIComponent(companyId)}`)
 }
 
 export const getProductsByCategory = async (categoryId: number): Promise<Product[]> => {
-  return apiFetch<Product[]>(`/products?category=${categoryId}&limit=100`)
+  return apiFetch<Product[]>(`/products?category=${categoryId}`)
 }
