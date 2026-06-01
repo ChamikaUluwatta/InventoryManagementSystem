@@ -28,6 +28,20 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
+  migrator:
+    image: migrate/migrate:v4.17.0
+    container_name: inventory-migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./Backend/internal/database/migrations:/migrations:ro
+    command: >
+      -path=/migrations
+      -database postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/inventory?sslmode=disable
+      up
+    restart: "no"
+
   auth-service:
     build:
       context: ./AuthService
@@ -76,6 +90,8 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     environment:
       - DB_HOST=postgres://postgres:${POSTGRES_PASSWORD?error}@postgres:5432/inventory?sslmode=disable
       - SERVER_PORT=${SERVER_PORT?error}

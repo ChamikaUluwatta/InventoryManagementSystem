@@ -29,6 +29,21 @@ services:
       - "6379:6379"
     profiles:
       - dockerDB
+  migrator:
+    image: migrate/migrate:v4.17.0
+    container_name: inventory-migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./Backend/internal/database/migrations:/migrations:ro
+    command: >
+      -path=/migrations
+      -database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/inventory?sslmode=disable
+      up
+    restart: "no"
+    profiles:
+      - dockerDB
   auth-service:
     build:
       context: ./AuthService
