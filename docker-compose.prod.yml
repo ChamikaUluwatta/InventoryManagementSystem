@@ -38,7 +38,7 @@ services:
       - ./Backend/internal/database/migrations:/migrations:ro
     command: >
       -path=/migrations
-      -database postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/inventory?sslmode=disable
+      -database postgres://${POSTGRES_USER?error}:${POSTGRES_PASSWORD?error}@postgres:5432/inventory?sslmode=disable
       up
     restart: "no"
 
