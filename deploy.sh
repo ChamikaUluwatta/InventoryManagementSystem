@@ -10,7 +10,7 @@ echo "[$(date -Iseconds)] Deploying tag $TAG"
 
 git fetch --tags
 
-git checkout "$TAG"
+git checkout -- "$TAG"
 
 docker compose -f docker-compose.prod.yml build
 
