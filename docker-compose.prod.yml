@@ -108,6 +108,8 @@ services:
       args:
         NGINX_CONF: nginx/nginx.prod.conf
     container_name: inventory-nginx
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: curl -s -o /dev/null http://localhost || exit 1
       interval: 30s
