@@ -1,0 +1,36 @@
+[
+  {
+    "id": "github-deploy",
+    "execute-command": "/home/uc/InventoryManagementSystem/webhook/deploy-wrapper.sh",
+    "pass-arguments-to-command": [
+      {
+        "source": "payload",
+        "name": "ref"
+      }
+    ],
+    "trigger-rule": {
+      "and": [
+        {
+          "match": {
+            "type": "value",
+            "value": "create",
+            "parameter": {
+              "source": "header",
+              "name": "X-GitHub-Event"
+            }
+          }
+        },
+        {
+          "match": {
+            "type": "value",
+            "value": "tag",
+            "parameter": {
+              "source": "payload",
+              "name": "ref_type"
+            }
+          }
+        }
+      ]
+    }
+  }
+]
