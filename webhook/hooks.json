@@ -1,7 +1,10 @@
 [
   {
     "id": "github-deploy",
-    "execute-command": "/home/uc/InventoryManagementSystem/webhook/deploy-wrapper.sh",
+    "execute-command": "/opt/inventory/webhook/deploy-wrapper.sh",
+    "command-working-directory": "/opt/inventory",
+    "response-message": "ok",
+    "http-methods": ["POST"],
     "pass-arguments-to-command": [
       {
         "source": "payload",
@@ -12,8 +15,18 @@
       "and": [
         {
           "match": {
+            "secret": "{{ getenv \"WEBHOOK_SECRET\" }}",
+            "type": "payload-hmac-sha256",
+            "parameter": {
+              "source": "header",
+              "name": "X-Hub-Signature-256"
+            }
+          }
+        },
+        {
+          "match": {
             "type": "value",
-            "value": "create",
+            "value": "push",
             "parameter": {
               "source": "header",
               "name": "X-GitHub-Event"
@@ -22,11 +35,21 @@
         },
         {
           "match": {
-            "type": "value",
-            "value": "tag",
+            "type": "regex",
+            "regex": "^refs/tags/v[0-9]+\\.[0-9]+\\.[0-9]+$",
             "parameter": {
               "source": "payload",
-              "name": "ref_type"
+              "name": "ref"
+            }
+          }
+        },
+        {
+          "match": {
+            "type": "value",
+            "value": "false",
+            "parameter": {
+              "source": "payload",
+              "name": "deleted"
             }
           }
         }

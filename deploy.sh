@@ -10,28 +10,10 @@ echo "[$(date -Iseconds)] Deploying tag $TAG"
 
 git fetch --tags
 
-git checkout -- "$TAG"
+git checkout -f "$TAG"
 
-docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml run --rm migrator
 
-docker compose -f docker-compose.prod.yml up -d
-
-docker image prune -f
-
-EXITED=$(docker compose -f docker-compose.prod.yml ps --format json \
-  | jq -r 'select(.State == "exited") | .Name' || true)
-
-if [ -n "$EXITED" ]; then
-
-  echo "WARN: the following containers exited:"
-
-  echo "$EXITED"
-  for c in $EXITED; do
-
-    echo "--- logs for $c ---"
-
-    docker logs --tail 50 "$c" || true
-  done
-fi
+docker compose -f compose.yaml up -d --build --remove-orphans
 
 echo "[$(date -Iseconds)] Deploy complete"

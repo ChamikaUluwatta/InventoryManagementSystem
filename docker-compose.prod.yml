@@ -34,6 +34,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    profiles:
+      - ["migrations"]
     volumes:
       - ./Backend/internal/database/migrations:/migrations:ro
     command: >
@@ -90,8 +92,6 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
     environment:
       - DB_HOST=postgres://postgres:${POSTGRES_PASSWORD?error}@postgres:5432/inventory?sslmode=disable
       - SERVER_PORT=${SERVER_PORT?error}

@@ -6,7 +6,6 @@ endif
 
 export DBURL
 
-# Development
 
 ## run/backend: run the backend
 .PHONY: run/backend
