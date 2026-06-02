@@ -1,3 +1,5 @@
+SET app.current_tenant_id = '00000000-0000-0000-0000-000000000000';
+
 ALTER TABLE categories
     ADD COLUMN tenant_id UUID NOT NULL DEFAULT current_setting('app.current_tenant_id')::uuid,
     ENABLE ROW LEVEL SECURITY;
