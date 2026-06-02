@@ -35,7 +35,7 @@ services:
       postgres:
         condition: service_healthy
     profiles:
-      - ["migrations"]
+      - migrations
     volumes:
       - ./Backend/internal/database/migrations:/migrations:ro
     command: >
