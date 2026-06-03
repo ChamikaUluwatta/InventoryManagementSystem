@@ -8,7 +8,7 @@
     "pass-arguments-to-command": [
       {
         "source": "payload",
-        "name": "ref"
+        "name": "workflow_run.head_branch"
       }
     ],
     "trigger-rule": {
@@ -26,7 +26,7 @@
         {
           "match": {
             "type": "value",
-            "value": "push",
+            "value": "workflow_run",
             "parameter": {
               "source": "header",
               "name": "X-GitHub-Event"
@@ -35,21 +35,41 @@
         },
         {
           "match": {
-            "type": "regex",
-            "regex": "^refs/tags/v[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "type": "value",
+            "value": "completed",
             "parameter": {
               "source": "payload",
-              "name": "ref"
+              "name": "action"
             }
           }
         },
         {
           "match": {
             "type": "value",
-            "value": "false",
+            "value": "success",
             "parameter": {
               "source": "payload",
-              "name": "deleted"
+              "name": "workflow_run.conclusion"
+            }
+          }
+        },
+        {
+          "match": {
+            "type": "value",
+            "value": "Push Images",
+            "parameter": {
+              "source": "payload",
+              "name": "workflow_run.name"
+            }
+          }
+        },
+        {
+          "match": {
+            "type": "regex",
+            "regex": "^v[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "parameter": {
+              "source": "payload",
+              "name": "workflow_run.head_branch"
             }
           }
         }
