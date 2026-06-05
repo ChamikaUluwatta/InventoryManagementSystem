@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import * as authService from '@/services/authService'
 import { setAccessToken, setRefreshFunction } from '@/lib/tokenStore'
 
@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false)
+  const autoOpenTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const openAuthDialog = useCallback(() => setIsAuthDialogOpen(true), [])
   const closeAuthDialog = useCallback(() => setIsAuthDialogOpen(false), [])
@@ -67,10 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth()
   }, [refreshAccessToken])
 
-  // Show auth dialog whenever user is not logged in
   useEffect(() => {
     if (!isLoading && !user) {
-      openAuthDialog()
+      autoOpenTimerRef.current = setTimeout(() => openAuthDialog(), 150)
+    }
+    return () => {
+      if (autoOpenTimerRef.current) {
+        clearTimeout(autoOpenTimerRef.current)
+      }
     }
   }, [isLoading, user, openAuthDialog])
 

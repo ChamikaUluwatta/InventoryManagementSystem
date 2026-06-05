@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -44,6 +44,10 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const [guestExpiresAt, setGuestExpiresAt] = useState<Date | null>(null)
   const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null)
   const [seedStep, setSeedStep] = useState(0)
+  const [mounted, setMounted] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const cancelledRef = useRef(false)
   const { login, register, loginAsGuest } = useAuth()
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema) })
@@ -71,7 +75,23 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
   }, [])
 
   useEffect(() => {
-    if (!open) resetToLogin()
+    if (open) {
+      setMounted(true)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true))
+      })
+    } else {
+      setVisible(false)
+      exitTimerRef.current = setTimeout(() => {
+        setMounted(false)
+        resetToLogin()
+      }, 200)
+    }
+    return () => {
+      if (exitTimerRef.current) {
+        clearTimeout(exitTimerRef.current)
+      }
+    }
   }, [open, resetToLogin])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,17 +146,23 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
     setSeedStep(0)
     setError(null)
 
-    const advanceSeed = (step: number) => {
+    const STEP_DURATION_MS = 1000
+    cancelledRef.current = false
+
+    const runAnimation = (step: number) => {
+      if (cancelledRef.current) return
+      setSeedStep(step)
       if (step >= SEED_STEPS.length) return
-      setTimeout(() => setSeedStep(step + 1), 500)
+      setTimeout(() => runAnimation(step + 1), STEP_DURATION_MS)
     }
-    advanceSeed(1)
+    runAnimation(0)
 
     try {
       await apiFetch('/seed', { method: 'POST' })
-      setSeedStep(SEED_STEPS.length)
-      setTimeout(() => onClose(), 1000)
     } catch {
+      // seed error surfaced elsewhere; animation continues until last step
+    } finally {
+      cancelledRef.current = true
       setSeedStep(SEED_STEPS.length)
       setTimeout(() => onClose(), 1000)
     }
@@ -159,7 +185,7 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
     setTimeout(() => setCopiedField(null), 2000)
   }
 
-  if (!open) return null
+  if (!mounted) return null
 
   const renderLoginForm = () => (
     <form onSubmit={handleSubmit}>
@@ -193,19 +219,25 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
           {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
         </Field>
 
-        {mode === 'signup' && (
-          <Field>
-            <FieldLabel htmlFor="auth-confirm">Confirm Password</FieldLabel>
-            <Input
-              id="auth-confirm"
-              type="password"
-              placeholder="Confirm your password"
-              {...signupForm.register('confirmPassword')}
-              aria-invalid={!!confirmPasswordError}
-            />
-            {confirmPasswordError && <p className="text-sm text-destructive">{confirmPasswordError}</p>}
-          </Field>
-        )}
+        <div
+          className="grid transition-[grid-template-rows] duration-300"
+          style={{ gridTemplateRows: mode === 'signup' ? '1fr' : '0fr' }}
+        >
+          <div className="overflow-hidden">
+            <Field>
+              <FieldLabel htmlFor="auth-confirm">Confirm Password</FieldLabel>
+              <Input
+                id="auth-confirm"
+                type="password"
+                placeholder="Confirm your password"
+                {...signupForm.register('confirmPassword')}
+                aria-invalid={!!confirmPasswordError}
+                tabIndex={mode === 'signup' ? undefined : -1}
+              />
+              {confirmPasswordError && <p className="text-sm text-destructive">{confirmPasswordError}</p>}
+            </Field>
+          </div>
+        </div>
 
         <Field>
           <Button type="submit" disabled={isSubmitting} className="w-full">
@@ -239,14 +271,14 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
             {mode === 'login' ? (
               <>
                 Don&apos;t have an account?{' '}
-                <button type="button" onClick={() => { setMode('signup'); setError(null) }} className="underline underline-offset-4 hover:text-foreground">
+                <button type="button" onClick={() => { setMode('signup'); setError(null); loginForm.clearErrors(); signupForm.clearErrors() }} className="underline underline-offset-4 hover:text-foreground">
                   Sign up
                 </button>
               </>
             ) : (
               <>
                 Already have an account?{' '}
-                <button type="button" onClick={() => { setMode('login'); setError(null) }} className="underline underline-offset-4 hover:text-foreground">
+                <button type="button" onClick={() => { setMode('login'); setError(null); loginForm.clearErrors(); signupForm.clearErrors() }} className="underline underline-offset-4 hover:text-foreground">
                   Login
                 </button>
               </>
@@ -311,25 +343,46 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
   const renderSeedAnimation = () => (
     <div className="flex flex-col gap-3 py-2">
-      {SEED_STEPS.map((label, i) => (
-        <div key={i} className="flex items-center gap-3">
-          {i < seedStep ? (
-            <span className="text-green-600 text-sm font-bold shrink-0">&#10003;</span>
-          ) : i === seedStep ? (
-            <span className="text-primary text-sm shrink-0 animate-pulse">&#9679;</span>
-          ) : (
-            <span className="text-muted-foreground/30 text-sm shrink-0">&#9679;</span>
-          )}
-          <span
-            className={cn(
-              'text-sm transition-colors',
-              i <= seedStep ? 'text-foreground' : 'text-muted-foreground/40'
+      {SEED_STEPS.map((label, i) => {
+        const isDone = i < seedStep
+        const isActive = i === seedStep
+        const isPending = i > seedStep
+
+        return (
+          <div key={label} className="flex items-center gap-3">
+            {isDone ? (
+              <span
+                key="done"
+                className="text-green-600 text-sm font-bold shrink-0"
+              >
+                &#10003;
+              </span>
+            ) : isActive ? (
+              <span
+                key="active"
+                className="text-primary text-sm shrink-0 animate-pulse"
+              >
+                &#9679;
+              </span>
+            ) : (
+              <span
+                key="pending"
+                className="text-muted-foreground/30 text-sm shrink-0"
+              >
+                &#9679;
+              </span>
             )}
-          >
-            {label}
-          </span>
-        </div>
-      ))}
+            <span
+              className={cn(
+                'text-sm transition-colors duration-300',
+                isPending ? 'text-muted-foreground/40' : 'text-foreground'
+              )}
+            >
+              {label}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 
@@ -347,9 +400,12 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
       : 'Create an account to get started'
   }
 
+  const overlayClass = visible ? 'animate-auth-overlay-in' : 'animate-auth-overlay-out'
+  const cardClass = visible ? 'animate-auth-card-in' : 'animate-auth-card-out'
+
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm">
+    <div className={cn('fixed inset-0 z-60 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4', overlayClass)}>
+      <div className={cn('w-full max-w-sm', cardClass)}>
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
@@ -357,11 +413,38 @@ export function AuthDialog({ open, onClose }: { open: boolean; onClose: () => vo
               <CardDescription>{getDescription()}</CardDescription>
             </CardHeader>
             <CardContent>
-              {content === 'login' || content === 'signup'
-                ? renderLoginForm()
-                : content === 'guest_credentials'
-                ? renderGuestCredentials()
-                : renderSeedAnimation()}
+              <div className="relative overflow-hidden">
+                <div
+                  className={cn(
+                    'transition-all duration-300',
+                    content === 'login' || content === 'signup'
+                      ? 'opacity-100 translate-x-0 relative'
+                      : 'opacity-0 translate-x-4 absolute inset-0 pointer-events-none'
+                  )}
+                >
+                  {renderLoginForm()}
+                </div>
+                <div
+                  className={cn(
+                    'transition-all duration-300',
+                    content === 'guest_credentials'
+                      ? 'opacity-100 translate-x-0 relative'
+                      : 'opacity-0 -translate-x-4 absolute inset-0 pointer-events-none'
+                  )}
+                >
+                  {renderGuestCredentials()}
+                </div>
+                <div
+                  className={cn(
+                    'transition-all duration-300',
+                    content === 'seeding'
+                      ? 'opacity-100 translate-x-0 relative'
+                      : 'opacity-0 translate-x-4 absolute inset-0 pointer-events-none'
+                  )}
+                >
+                  {renderSeedAnimation()}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

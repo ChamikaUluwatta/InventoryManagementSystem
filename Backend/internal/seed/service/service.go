@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"log"
 
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/database"
 	"github.com/google/uuid"
@@ -60,9 +58,6 @@ type SeededIDs struct {
 }
 
 func (s *Service) Seed(ctx context.Context, tenantID uuid.UUID) (*SeedResult, *SeededIDs, error) {
-	if err := s.clearTables(ctx); err != nil {
-		return nil, nil, fmt.Errorf("failed to clear tables: %w", err)
-	}
 
 	result := &SeedResult{}
 	ids := &SeededIDs{}
@@ -110,38 +105,4 @@ func (s *Service) Seed(ctx context.Context, tenantID uuid.UUID) (*SeedResult, *S
 	result.Inventories = len(inventories)
 
 	return result, ids, nil
-}
-
-func (s *Service) clearTables(ctx context.Context) error {
-	db := s.db(ctx)
-	_, err := db.Exec(ctx, "DELETE FROM supplier_return_items")
-	if err != nil {
-		return fmt.Errorf("failed to clear supplier_return_items: %w", err)
-	}
-	_, err = db.Exec(ctx, "DELETE FROM supplier_returns")
-	if err != nil {
-		return fmt.Errorf("failed to clear supplier_returns: %w", err)
-	}
-	_, err = db.Exec(ctx, "DELETE FROM inventories")
-	if err != nil {
-		return fmt.Errorf("failed to clear inventories: %w", err)
-	}
-	_, err = db.Exec(ctx, "DELETE FROM products")
-	if err != nil {
-		return fmt.Errorf("failed to clear products: %w", err)
-	}
-	_, err = db.Exec(ctx, "DELETE FROM locations")
-	if err != nil {
-		return fmt.Errorf("failed to clear locations: %w", err)
-	}
-	_, err = db.Exec(ctx, "DELETE FROM categories")
-	if err != nil {
-		return fmt.Errorf("failed to clear categories: %w", err)
-	}
-	_, err = db.Exec(ctx, "DELETE FROM companies")
-	if err != nil {
-		return fmt.Errorf("failed to clear companies: %w", err)
-	}
-	log.Println("All tenant tables cleared successfully")
-	return nil
 }
