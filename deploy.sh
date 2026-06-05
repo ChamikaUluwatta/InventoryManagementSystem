@@ -15,7 +15,7 @@ git checkout -f "$TAG"
 
 docker compose -f docker-compose.prod.yml run --rm migrator
 
-docker compose -f docker-compose.ghcr.yml pull
-docker compose -f docker-compose.ghcr.yml up -d --remove-orphans
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
 echo "[$(date -Iseconds)] Deploy complete"

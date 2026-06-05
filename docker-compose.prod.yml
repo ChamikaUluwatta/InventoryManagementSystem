@@ -45,9 +45,7 @@ services:
     restart: "no"
 
   auth-service:
-    build:
-      context: ./AuthService
-      dockerfile: Dockerfile
+    image: ghcr.io/chamikauluwatta/inventory-auth:${TAG}
     container_name: inventory-auth
     healthcheck:
       test: wget -q -O /dev/null http://localhost:8081/health || exit 1
@@ -76,9 +74,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    image: ghcr.io/chamikauluwatta/inventory-backend:${TAG}
     container_name: inventory-backend
     healthcheck:
       test: wget -q -O /dev/null http://localhost:8080/api/v1/health || exit 1
@@ -102,11 +98,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    build:
-      context: .
-      dockerfile: nginx/Dockerfile
-      args:
-        NGINX_CONF: nginx/nginx.prod.conf
+    image: ghcr.io/chamikauluwatta/inventory-nginx:${TAG}
     container_name: inventory-nginx
     extra_hosts:
       - "host.docker.internal:host-gateway"
