@@ -5,6 +5,9 @@ on:
         tags:
             - "v*.*.*"
 
+env:
+    IMAGE_PREFIX: ""
+
 jobs:
     deploy:
         runs-on: ubuntu-latest
@@ -15,7 +18,9 @@ jobs:
             - uses: actions/checkout@v4
 
             - name: Set image prefix
-              run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/inventory" >> "$GITHUB_ENV"
+              env:
+                OWNER: ${{ github.repository_owner }}
+              run: echo "IMAGE_PREFIX=ghcr.io/${OWNER,,}/inventory" >> "$GITHUB_ENV"
               shell: bash
 
             - uses: docker/setup-buildx-action@v3
@@ -33,7 +38,6 @@ jobs:
               with:
                   images: ${{ env.IMAGE_PREFIX }}-auth
                   tags: |
-                      type=ref,event=branch
                       type=semver,pattern={{version}}
                       type=sha
 
@@ -42,6 +46,7 @@ jobs:
               with:
                   context: ./AuthService
                   file: ./AuthService/Dockerfile
+                  target: production
                   push: true
                   tags: ${{ steps.meta_auth.outputs.tags }}
                   labels: ${{ steps.meta_auth.outputs.labels }}
@@ -54,7 +59,6 @@ jobs:
               with:
                   images: ${{ env.IMAGE_PREFIX }}-backend
                   tags: |
-                      type=ref,event=branch
                       type=semver,pattern={{version}}
                       type=sha
 
@@ -63,6 +67,7 @@ jobs:
               with:
                   context: ./Backend
                   file: ./Backend/Dockerfile
+                  target: production
                   push: true
                   tags: ${{ steps.meta_backend.outputs.tags }}
                   labels: ${{ steps.meta_backend.outputs.labels }}
@@ -75,7 +80,6 @@ jobs:
               with:
                   images: ${{ env.IMAGE_PREFIX }}-frontend
                   tags: |
-                      type=ref,event=branch
                       type=semver,pattern={{version}}
                       type=sha
 
@@ -96,7 +100,6 @@ jobs:
               with:
                   images: ${{ env.IMAGE_PREFIX }}-nginx
                   tags: |
-                      type=ref,event=branch
                       type=semver,pattern={{version}}
                       type=sha
 

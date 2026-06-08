@@ -15,8 +15,6 @@ services:
     volumes:
       - ./db-init:/docker-entrypoint-initdb.d:ro
       - postgres_data:/var/lib/postgresql/data
-    profiles:
-      - dockerDB
   redis:
     image: redis:7-alpine
     container_name: inventory-redis
@@ -27,8 +25,6 @@ services:
       retries: 5
     ports:
       - "6379:6379"
-    profiles:
-      - dockerDB
   migrator:
     image: migrate/migrate:v4.17.0
     container_name: inventory-migrator
@@ -42,8 +38,6 @@ services:
       -database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/inventory?sslmode=disable
       up
     restart: "no"
-    profiles:
-      - dockerDB
   auth-service:
     build:
       context: ./AuthService
@@ -68,8 +62,6 @@ services:
         condition: service_started
     ports:
       - "8081:8081"
-    profiles:
-      - dockerDB
   backend:
     build:
       context: ./Backend
@@ -94,11 +86,11 @@ services:
         condition: service_started
       auth-service:
         condition: service_started
+    volumes:
+      - .:/app
+      - /app/tmp
     ports:
       - "8080:8080"
-    profiles:
-      - dockerDB
-      - localDB
   frontend:
     build:
       context: ./Frontend
@@ -113,8 +105,5 @@ services:
       - "5173:5173"
     depends_on:
       - backend
-    profiles:
-      - dockerDB
-      - localDB
 volumes:
   postgres_data:
