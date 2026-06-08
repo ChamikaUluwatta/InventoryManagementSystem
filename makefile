@@ -10,7 +10,7 @@ export DBURL
 ## run/backend: run the backend
 .PHONY: run/backend
 run/backend:
-	cd Backend && go run ./cmd
+	cd Backend && air
 
 ## run/frontend: run the frontend  
 .PHONY: run/frontend
@@ -22,10 +22,24 @@ run/frontend:
 run/authservice:
 	cd AuthService && ./mvnw spring-boot:run
 
+# run/redis	
+.PHONY: run/redis
+run/redis:
+	@if [ "$$(docker ps -q -f name=redis-local)" ]; then \
+		echo "Container 'redis-local' is already running."; \
+	elif [ "$$(docker ps -aq -f name=redis-local)" ]; then \
+		echo "Starting existing container 'redis-local'..."; \
+		docker start redis-local; \
+	else \
+		echo "Creating and starting new container 'redis-local'..."; \
+		docker run -d -p 6379:6379 --name redis-local redis:7-alpine; \
+	fi
+
 ## run: run both backend and frontend concurrently
 .PHONY: run
 run:
-	make -j3 run/backend run/frontend run/authservice
+	make -j3 run/redis run/backend run/frontend run/authservice
+
 
 # Database Migrations
 
