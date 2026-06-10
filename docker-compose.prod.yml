@@ -7,6 +7,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - database
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       - POSTGRES_USER=${POSTGRES_USER?error}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?error}
@@ -23,6 +38,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - database
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
     command: redis-server --requirepass ${REDIS_PASSWORD?error}
     volumes:
       - redis_data:/data
@@ -36,6 +63,15 @@ services:
         condition: service_healthy
     profiles:
       - migrations
+    networks:
+      - database
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - ./Backend/internal/database/migrations:/migrations:ro
     command: >
@@ -47,6 +83,7 @@ services:
   auth-service:
     image: ghcr.io/chamikauluwatta/inventory-auth:${TAG}
     container_name: inventory-auth
+    user: "10001:10001"
     healthcheck:
       test: wget -q -O /dev/null http://localhost:8081/health || exit 1
       interval: 30s
@@ -58,6 +95,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - database
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/auth_db
       - DB_USERNAME=postgres
@@ -76,6 +123,7 @@ services:
   backend:
     image: ghcr.io/chamikauluwatta/inventory-backend:${TAG}
     container_name: inventory-backend
+    user: "10001:10001"
     healthcheck:
       test: wget -q -O /dev/null http://localhost:8080/api/v1/health || exit 1
       interval: 30s
@@ -88,6 +136,16 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_healthy
+    networks:
+      - database
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       - DB_HOST=postgres://postgres:${POSTGRES_PASSWORD?error}@postgres:5432/inventory?sslmode=disable
       - SERVER_PORT=${SERVER_PORT?error}
@@ -102,14 +160,25 @@ services:
     container_name: inventory-nginx
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    networks:
+      - frontend
     healthcheck:
-      test: curl -s -o /dev/null http://localhost || exit 1
+      test: curl -s -o /dev/null http://localhost:8080 || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:8080"
+      - "443:8443"
     volumes:
       - ./secrets/origin-cert.pem:/etc/nginx/certs/origin.pem:ro
       - ./secrets/origin-key.pem:/etc/nginx/certs/private.key:ro
@@ -123,3 +192,13 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  frontend:
+  backend:
+    driver: bridge
+    internal: true
+  database:
+    driver: bridge
+    internal: true
+  
