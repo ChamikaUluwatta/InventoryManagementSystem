@@ -11,7 +11,7 @@ import (
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/inventory"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/location"
 	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/product"
-	"github.com/ChamikaUluwatta/Inventory_Management_System/internal/seed"
+	// "github.com/ChamikaUluwatta/Inventory_Management_System/internal/seed"
 	supplierreturns "github.com/ChamikaUluwatta/Inventory_Management_System/internal/supplier_returns"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -44,7 +44,7 @@ func SetupRoutes(r chi.Router, db *pgxpool.Pool) {
 			location.New(db).RegisterRoutes(r)
 			inventory.New(db).RegisterRoutes(r)
 			supplierreturns.New(db).RegisterRoutes(r)
-			seed.New(db).RegisterRoutes(r)
+			// seed.New(db).RegisterRoutes(r)
 		})
 	})
 }
