@@ -1,8 +1,8 @@
 .env
 secrets/
 .git/
-AuthService/target/
-Backend/server
-Backend/bin/
-Backend/tmp/
-Frontend/node_modules/
+authservice/target/
+backend/server
+backend/bin/
+backend/tmp/
+frontend/node_modules/
