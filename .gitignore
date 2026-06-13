@@ -1,6 +1,6 @@
 # Frontend 
-Frontend/dist/
-Frontend/node_modules/
+frontend/dist/
+frontend/node_modules/
 
 
 *.local
@@ -10,8 +10,12 @@ Frontend/node_modules/
 
 
 # Go build outputs
-Backend/bin/
-Backend/tmp/
+backend/bin/
+backend/tmp/
+
+# Authservice build outputs
+authservice/.mvn
+authservice/target/
 
 # IDE
 .vscode/
