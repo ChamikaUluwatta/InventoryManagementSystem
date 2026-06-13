@@ -37,7 +37,7 @@ services:
     profiles:
       - migrations
     volumes:
-      - ./Backend/internal/database/migrations:/migrations:ro
+      - ./backend/internal/database/migrations:/migrations:ro
     command: >
       -path=/migrations
       -database postgres://${POSTGRES_USER?error}:${POSTGRES_PASSWORD?error}@postgres:5432/inventory?sslmode=disable

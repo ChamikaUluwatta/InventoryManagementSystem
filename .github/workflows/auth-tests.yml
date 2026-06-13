@@ -3,7 +3,7 @@ name: Auth Service Tests
 on:
   pull_request:
     paths:
-      - 'AuthService/**'
+      - 'authservice/**'
       - '.github/workflows/auth-tests.yml'
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-          cache-dependency-path: AuthService/pom.xml
+          cache-dependency-path: authservice/pom.xml
 
       - name: Run tests
         run: ./mvnw test -Dtest='!com.inventory.auth.AuthServiceApplicationTests'
