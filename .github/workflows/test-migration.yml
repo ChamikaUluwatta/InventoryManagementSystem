@@ -87,7 +87,7 @@ jobs:
             -Dflyway.user=postgres \
             -Dflyway.password=postgres \
             -Dflyway.locations=classpath:db/migration
-        working-directory: AuthService
+        working-directory: authService
 
       - name: Verify migration state
         run: |
@@ -95,4 +95,4 @@ jobs:
             -Dflyway.url=jdbc:postgresql://localhost:5432/auth_db \
             -Dflyway.user=postgres \
             -Dflyway.password=postgres
-        working-directory: AuthService
+        working-directory: authService

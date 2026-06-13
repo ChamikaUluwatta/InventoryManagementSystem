@@ -22,4 +22,4 @@ jobs:
 
       - name: Run tests
         run: ./mvnw test -Dtest='!com.inventory.auth.AuthServiceApplicationTests'
-        working-directory: AuthService
+        working-directory: authService
