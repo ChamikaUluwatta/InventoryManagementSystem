@@ -32,7 +32,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./Backend/internal/database/migrations:/migrations:ro
+      - ./backend/internal/database/migrations:/migrations:ro
     command: >
       -path=/migrations
       -database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/inventory?sslmode=disable

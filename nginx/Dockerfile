@@ -1,8 +1,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY Frontend/package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
-COPY Frontend/ ./
+COPY frontend/ ./
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine

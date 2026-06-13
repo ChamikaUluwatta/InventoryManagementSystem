@@ -1,4 +1,4 @@
-MIGRATE=migrate -path=./Backend/internal/database/migrations -database "$(DBURL)"
+MIGRATE=migrate -path=./backend/internal/database/migrations -database "$(DBURL)"
 
 ifneq ($(wildcard .env),)
 	DBURL ?= $(strip $(shell grep -E '^DB_HOST=' .env 2>/dev/null | head -n1 | sed 's/^DB_HOST=//'))
@@ -66,7 +66,7 @@ migrate/down/1:
 ## migrate/create: create a new migration file
 .PHONY: migrate/create
 migrate/create:
-	migrate create -ext sql -seq -dir ./Backend/internal/database/migrations $(name)
+	migrate create -ext sql -seq -dir ./backend/internal/database/migrations $(name)
 
 # Docker
 ## docker/up: start with dockerized DB

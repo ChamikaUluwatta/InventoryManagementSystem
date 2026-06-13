@@ -2,7 +2,7 @@
 secrets/
 .git/
 AuthService/target/
-Backend/server
-Backend/bin/
-Backend/tmp/
-Frontend/node_modules/
+backend/server
+backend/bin/
+backend/tmp/
+frontend/node_modules/

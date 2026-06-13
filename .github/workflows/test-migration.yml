@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'db-init/**'
-      - 'Backend/internal/database/migrations/**'
+      - 'backend/internal/database/migrations/**'
       - 'AuthService/src/main/resources/db/migration/**'
       - '.github/workflows/test-migration.yml'
 
@@ -43,19 +43,19 @@ jobs:
 
       - name: Run inventory migrations up
         run: |
-          migrate -path Backend/internal/database/migrations \
+          migrate -path backend/internal/database/migrations \
             -database "postgresql://postgres:postgres@localhost:5432/inventory?sslmode=disable&options=-c%20app.current_tenant_id%3D00000000-0000-0000-0000-000000000001" \
             up
 
       - name: Run inventory migrations down
         run: |
-          migrate -path Backend/internal/database/migrations \
+          migrate -path backend/internal/database/migrations \
             -database "postgresql://postgres:postgres@localhost:5432/inventory?sslmode=disable&options=-c%20app.current_tenant_id%3D00000000-0000-0000-0000-000000000001" \
             down -all
 
       - name: Run inventory migrations up (verify clean re-apply)
         run: |
-          migrate -path Backend/internal/database/migrations \
+          migrate -path backend/internal/database/migrations \
             -database "postgresql://postgres:postgres@localhost:5432/inventory?sslmode=disable&options=-c%20app.current_tenant_id%3D00000000-0000-0000-0000-000000000001" \
             up
 
