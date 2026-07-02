@@ -39,3 +39,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# k8
+/k8s/.env*
+k8s/secrets/*
